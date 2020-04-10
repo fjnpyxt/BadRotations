@@ -1,20 +1,17 @@
-
-
-
 -- Functions from coders for public use
-
+local sqrt, cos, sin = math.sqrt, math.cos, math.sin
 --[[                                                                                                ]]
 --[[ ragnar                                                                                         ]]
 --[[                                                                                                ]]
 function unitLookup(Unit,returnType)
-    for i=1,#br.enemy do
-        if br.enemy[i].guid == Unit or br.enemy[i].unit == Unit then
+    for k, v in pairs(br.enemy) do
+        if br.enemy[k].guid == Unit or br.enemy[k].unit == Unit then
             if returnType == "guid" then
-                return br.enemy[i].guid
+                return br.enemy[k].guid
             elseif returnType == "table" then
                 return i
             else
-                return br.enemy[i].unit
+                return br.enemy[k].unit
             end
         end
     end
@@ -22,11 +19,11 @@ end
 
 function getUnitCount(ID,maxRange,tapped)
     local counter = 0
-    for i=1,#br.enemy do
-        local thisUnit = br.enemy[i].unit
-        local thisUnitID = br.enemy[i].id
+    for k, v in pairs(br.enemy) do
+        local thisUnit = br.enemy[k].unit
+        local thisUnitID = br.enemy[k].id
         if thisUnitID == ID then
-            if br.enemy[i].distance < maxRange then
+            if getDistance(thisUnit) < maxRange then
                 if (tapped == true and UnitIsTappedByPlayer(thisUnit)) or tapped == nil or tapped == false then
                     counter = counter + 1
                 end
@@ -48,20 +45,19 @@ end
 
 --cast spell on position x,y,z
 function castAtPosition(X,Y,Z, SpellID)
-    CastSpellByName(GetSpellInfo(SpellID))
     local i = -100
-    if IsMouseButtonDown(2) then
-        mouselookup = true
-    else
-        mouselookup = false
+    local mouselookActive = false
+    if IsMouselooking() then
+        mouselookActive = true
+        MouselookStop()
     end
-    MouselookStop()
+    CastSpellByName(GetSpellInfo(SpellID))
     while IsAoEPending() and i <= 100 do
         ClickPosition(X,Y,Z)
         Z = i
         i = i + 1
     end
-    if mouselookup then
+    if mouselookActive then
         MouselookStart()
     end
     if i >= 100 and IsAoEPending() then return false end
@@ -92,12 +88,13 @@ end
 
 
 function castGroundAtUnit(spellID, radius, minUnits, maxRange, minRange, spellType, unit)
-
+    local spellName = GetSpellInfo(spellID)
+    if radius == nil then radius = maxRange end
     if minRange == nil then minRange = 0 end
     local allUnitsInRange = {}
-    if spellType == "heal" then allUnitsInRange = getAllies("player",40) else allUnitsInRange = br.player.enemies(maxRange,"player",true) end
+    if spellType == "heal" then allUnitsInRange = getAllies("player",40) else allUnitsInRange = getEnemies("player",maxRange,true) end
 
-    if getUnits(unit,allUnitsInRange, radius - 3) >= minUnits then
+    if getUnits(unit,allUnitsInRange, radius - 3) >= minUnits and #getEnemies(unit,radius) >= #getEnemies(unit,radius,true) then
         local X1,Y1,Z1 = GetObjectPosition(unit)
         if castAtPosition(X1,Y1,Z1, spellID) then return true else return false end
     end
@@ -105,8 +102,9 @@ function castGroundAtUnit(spellID, radius, minUnits, maxRange, minRange, spellTy
 
 end
 
-function castGroundAtBestLocation(spellID, radius, minUnits, maxRange, minRange, spellType)
-
+function castGroundAtBestLocation(spellID, radius, minUnits, maxRange, minRange, spellType, castTime)
+    if radius == nil then radius = maxRange end
+    if maxRange == nil then maxRange = radius end
     -- return table with combination of every 2 units
     local function getAllCombinationsOfASet(arr, r)
         if(r > #arr) then
@@ -143,15 +141,32 @@ function castGroundAtBestLocation(spellID, radius, minUnits, maxRange, minRange,
     end
 
     --check if unit is inside of a circle
-    local function unitInCircle(unit, cx, cy, radius)
-        local uX, uY = GetObjectPosition(unit)
+    local function unitInCircle(unit, cx, cy, radius, castTime)
+        local uX, uY = 0, 0
+        if castTime == nil or castTime == 0 then
+          uX, uY = GetObjectPosition(unit)
+        else
+          uX, uY = GetFuturePostion(unit, castTime)
+        end
         local rUnit = UnitBoundingRadius(unit)
         return math.abs((uX - cx) * (uX - cx) + (uY - cy) * (uY - cy)) <= (rUnit + radius) * (rUnit + radius);
     end
 
+    --distance from center to unit
+    local function unitDistanceCenter(unit, cx, cy, castTime)
+        local uX, uY = 0, 0
+        if castTime == nil or castTime == 0 then
+            uX, uY = GetObjectPosition(unit)
+        else
+            uX, uY = GetFuturePostion(unit, castTime)
+        end
+        local rUnit = UnitBoundingRadius(unit)
+        return sqrt(((uX-cx)^2) + ((uY-cy)^2))
+    end
+
     if minRange == nil then minRange = 0 end
     local allUnitsInRange = {}
-    if spellType == "heal" then allUnitsInRange = getAllies("player",maxRange) else allUnitsInRange = br.player.enemies(maxRange,"player",true) end
+    if spellType == "heal" then allUnitsInRange = getAllies("player",maxRange) else allUnitsInRange = getEnemies("player",maxRange,false) end
 
     local testCircles = {}
     --for every combination of units make 2 circles, and put in testCircles
@@ -160,13 +175,18 @@ function castGroundAtBestLocation(spellID, radius, minUnits, maxRange, minRange,
         for i, val in pairs(combs) do
             local temp = {}
             for j, combination in pairs(val) do
-                local tX, tY, tZ = GetObjectPosition(combination)
-                if(j==#val) then
+                local tX, tY, tZ = 0,0,0
+                if castTime == nil or castTime == 0 then
+                  tX, tY, tZ = GetObjectPosition(combination)
+                else
+                  tX, tY, tZ = GetFuturePostion(combination, castTime)
+                end
+                if(j==#val) and temp.xi ~= nil then
                     temp.xii = tX;
                     temp.yii = tY;
                     temp.zii = tZ;
                     --distance
-                    temp.q = math.sqrt((temp.xii-temp.xi)^2 + (temp.yii-temp.yi)^2)
+                    temp.q = sqrt((temp.xii-temp.xi)^2 + (temp.yii-temp.yi)^2)
                     --check to calculation. if result < 0 math.sqrt will give error
                     local calc = ((radius^2)-((temp.q/2)^2))
                     if calc <=0 then break end
@@ -175,11 +195,11 @@ function castGroundAtBestLocation(spellID, radius, minUnits, maxRange, minRange,
                     --y3
                     temp.yiii = (temp.yi+temp.yii)/2
                     --first circle
-                    temp.xfc = temp.xiii + math.sqrt(calc)*((temp.yi-temp.yii)/temp.q)
-                    temp.yfc = temp.yiii + math.sqrt(calc)*((temp.xii-temp.xi)/temp.q)
+                    temp.xfc = temp.xiii + sqrt(calc)*((temp.yi-temp.yii)/temp.q)
+                    temp.yfc = temp.yiii + sqrt(calc)*((temp.xii-temp.xi)/temp.q)
                     --second circle
-                    temp.xsc = temp.xiii - math.sqrt(calc)*((temp.yi-temp.yii)/temp.q)
-                    temp.ysc = temp.yiii - math.sqrt(calc)*((temp.xii-temp.xi)/temp.q)
+                    temp.xsc = temp.xiii - sqrt(calc)*((temp.yi-temp.yii)/temp.q)
+                    temp.ysc = temp.yiii - sqrt(calc)*((temp.xii-temp.xi)/temp.q)
                     --
                     temp.z = tZ
                     tinsert(testCircles, temp)
@@ -201,22 +221,28 @@ function castGroundAtBestLocation(spellID, radius, minUnits, maxRange, minRange,
     --for every circle in testCircles, get units inside this circle, and return the circle with most units inside
     for i=1, #testCircles do
         local thisCircle = testCircles[i]
-        temp1 = 0
-        temp2 = 0
+        local temp1 = 0
+        local temp2 = 0
+        local temp1Units = { }
+        local temp2Units = { }
         for j=1, #allUnitsInRange do
             if spellType == "heal" then
-                if unitInCircle(allUnitsInRange[j].unit,thisCircle.xfc,thisCircle.yfc, radius) then
+                if unitInCircle(allUnitsInRange[j].unit,thisCircle.xfc,thisCircle.yfc, radius, castTime) then
                     temp1 = temp1 + 1
+                    tinsert(temp1Units,allUnitsInRange[j])
                 end
-                if unitInCircle(allUnitsInRange[j].unit,thisCircle.xsc,thisCircle.ysc, radius) then
+                if unitInCircle(allUnitsInRange[j].unit,thisCircle.xsc,thisCircle.ysc, radius, castTime) then
                     temp2 = temp2 + 1
+                    tinsert(temp2Units,allUnitsInRange[j])
                 end
             else
-                if unitInCircle(allUnitsInRange[j],thisCircle.xfc,thisCircle.yfc, radius) then
+                if unitInCircle(allUnitsInRange[j],thisCircle.xfc,thisCircle.yfc, radius, castTime) then
                     temp1 = temp1 + 1
+                    tinsert(temp1Units,allUnitsInRange[j])
                 end
-                if unitInCircle(allUnitsInRange[j],thisCircle.xsc,thisCircle.ysc, radius) then
+                if unitInCircle(allUnitsInRange[j],thisCircle.xsc,thisCircle.ysc, radius, castTime) then
                     temp2 = temp2 + 1
+                    tinsert(temp2Units,allUnitsInRange[j])
                 end
             end
         end
@@ -225,39 +251,58 @@ function castGroundAtBestLocation(spellID, radius, minUnits, maxRange, minRange,
             bestCircle.y = thisCircle.yfc
             bestCircle.z = thisCircle.z
             bestCircle.nro = temp1
+            bestCircle.units = {}
+            for p = 1, #temp1Units do tinsert(bestCircle.units,temp1Units[p]) end
         elseif temp2 > temp1  and temp2 > bestCircle.nro then
             bestCircle.x = thisCircle.xsc
             bestCircle.y = thisCircle.ysc
             bestCircle.z = thisCircle.z
             bestCircle.nro = temp2
+            bestCircle.units = {}
+            for p = 1, #temp2Units do tinsert(bestCircle.units,temp2Units[p]) end
         elseif temp2 == temp1 and temp2 > bestCircle.nro then
             bestCircle.x = thisCircle.xsc
             bestCircle.y = thisCircle.ysc
             bestCircle.z = thisCircle.z
             bestCircle.nro = temp2
+            bestCircle.units = {}
+            for p = 1, #temp2Units do tinsert(bestCircle.units,temp2Units[p]) end
         end
-
     end
+    --print(#bestCircle.units)
 
     -- check if units of the best circle is equal of circle of unit, if it is, then cast on this unit
-    for i=1,#allUnitsInRange do
-        local thisUnit = allUnitsInRange[i]
-        nmro = getUnits(thisUnit,allUnitsInRange, radius - 3)
-        if nmro >= bestCircle.nro then
-            bestCircle.x, bestCircle.y, bestCircle.z= GetObjectPosition(thisUnit)
-            bestCircle.nro = nmro
-            break;
-        end
-    end
+    -- for i=1,#allUnitsInRange do
+    --     local thisUnit = allUnitsInRange[i]
+    --     nmro = getUnits(thisUnit,allUnitsInRange, radius - 3)
+    --     if nmro >= bestCircle.nro and nmro >= minUnits then
+    --         if castGround(thisUnit,spellID,maxRange,minRange,radius,castTime) then return true else return false end
+    --     end
+    -- end
 
     --check with minUnits
     if minUnits == 1 and bestCircle.nro == 0 and GetUnitExists("target") then
-        bestCircle.x,bestCircle.y,bestCircle.z = GetObjectPosition("target")
-        if castAtPosition(bestCircle.x,bestCircle.y,bestCircle.z, spellID) then return true else return false end
+        if castGround("target",spellID,maxRange,minRange,radius,castTime) then return true else return false end
     end
     if bestCircle.nro < minUnits then return false end
 
     if bestCircle.x ~= 0 and bestCircle.y ~= 0 and bestCircle.z ~= 0 then
+        --Calculate x/y position with shortest dist to units
+        local shortestDistance = 999
+        local newBestCircleX, newBestCircleY = 0,0
+        for x = bestCircle.x - radius, bestCircle.x + radius do
+            for y = bestCircle.y - radius, bestCircle.y + radius do
+                local totalDistance = 0
+                for i = 1, #bestCircle.units do
+                    totalDistance = totalDistance + unitDistanceCenter(bestCircle.units[i], x, y, castTime)
+                end
+                if totalDistance < shortestDistance then
+                    shortestDistance = totalDistance
+                    newBestCircleX, newBestCircleY = x, y
+                end
+            end
+        end
+        bestCircle.x, bestCircle.y = (newBestCircleX + math.random() * 2), (newBestCircleY + math.random() * 2)
         if castAtPosition(bestCircle.x,bestCircle.y,bestCircle.z, spellID) then return true else return false end
     end
 end
@@ -274,8 +319,8 @@ function isUnitThere(unitNameOrID,distance)
     -- isUnitThere("Shadowfel Warden")
 
     if type(unitNameOrID)=="number" then
-        for i=1,#br.enemy do
-            local thisUnit = br.enemy[i].unit
+        for k, v in pairs(br.enemy) do
+            local thisUnit = br.enemy[k].unit
             if GetObjectID(thisUnit) then
                 if distance==nil or getDistance("player",thisUnit) < distance then
                     return true
@@ -284,8 +329,8 @@ function isUnitThere(unitNameOrID,distance)
         end
     end
     if type(unitNameOrID)=="string" then
-        for i=1,#br.enemy do
-            local thisUnit = br.enemy[i].unit
+        for k, v in pairs(br.enemy) do
+            local thisUnit = br.enemy[k].unit
             if UnitName(thisUnit)==unitNameOrID then
                 if distance==nil or getDistance("player",thisUnit) < distance then
                     return true
@@ -372,7 +417,7 @@ function RaidBuff(BuffSlot,myBuffSpellID)
         multistrike = {166916,49868,113742,109773,172968,50519,57386,58604,54889,24844},
         versatility = {55610,1126,167187,167188,172967,159735,35290,57386,160045,50518,173035,160007}
     }
-
+    local chosenTable
     if id == 1 then
         chosenTable = bufftable.stats
     elseif id == 2 then
@@ -438,11 +483,11 @@ function getUnitCluster(minUnits,maxRange,radius)
     local enemiesInRange = 0
     local theReturnUnit
 
-    for i=1,#br.enemy do
-        local thisUnit = br.enemy[i].unit
+    for k, v in pairs(br.enemy) do
+        local thisUnit = br.enemy[k].unit
         local thisEnemies = getNumEnemies(thisUnit,radius)
         if getLineOfSight(thisUnit) == true then
-            if br.enemy[i].distance < maxRange then
+            if getDistance(thisUnit) < maxRange then
                 if thisEnemies >= minUnits and thisEnemies > enemiesInRange then
                     theReturnUnit = thisUnit
                 end
@@ -452,7 +497,7 @@ function getUnitCluster(minUnits,maxRange,radius)
     return select(1,theReturnUnit)
 end
 
-function getBiggestUnitCluster(maxRange,radius)
+function getBiggestUnitCluster(maxRange,radius,minCount)
     -- Description:
     -- returns the enemy with most enemies in radius in maxRange from player
 
@@ -465,23 +510,28 @@ function getBiggestUnitCluster(maxRange,radius)
 
     if type(maxRange) ~= "number" then return nil end
     if type(radius) ~= "number" then return nil end
+    if type(minCount) ~= "number" then minCount = 0 end
 
-    local enemiesInRange = 0
+    local enemiesInRange = minCount or 0
     local theReturnUnit
+    local foundCluster = false
 
-    for i=1,#br.enemy do
-        local thisUnit = br.enemy[i].unit
+    for k, v in pairs(br.enemy) do
+        local thisUnit = br.enemy[k].unit
+        local thisRange = getDistance(thisUnit) or 99
         if getLineOfSight(thisUnit) == true then
-            if br.enemy[i].distance < maxRange then
-                if getNumEnemies(thisUnit,radius) > enemiesInRange then
+            if thisRange < maxRange then
+                local enemyCount = getNumEnemies(thisUnit,radius)
+                if enemyCount >= enemiesInRange then
                     theReturnUnit = thisUnit
+                    foundCluster = true
+                    enemiesInRange = enemyCount
                 end
             end
         end
     end
-    return select(1,theReturnUnit)
+    return theReturnUnit
 end
-
 
 
 --[[                                                                                                ]]
@@ -524,10 +574,10 @@ function SalvageHelper()
                 salvageTimer = GetTime() -- if no more free slots, start timer
                 -- TEMP ! Trys to sell to close merchant (needs addon which sells items when opening merchant window)
                 CloseMerchant()
-                for i=1,GetObjectCount() do
+                for i=1,GetObjectCountBR() do
                     -- Locals
                     local thisObject = GetObjectWithIndex(i)
-                    if ObjectIsType(thisObject, ObjectTypes.Unit) then
+                    if ObjectIsUnit(thisObject) then
                         -- Locals
                         local guid = UnitGUID(thisObject)
                         local objectName = ObjectName(thisObject)
@@ -572,20 +622,20 @@ function mergeIdTables(idTable)
     local class = select(2,UnitClass("player"))
     local spec = GetSpecializationInfo(GetSpecialization())
     if idTable ~= nil then idTable = {} end
-    if br.idList.Shared ~= nil then
-        idTable = mergeTables(idTable, br.idList.Shared)
+    if br.lists.spells.Shared ~= nil then
+        idTable = mergeTables(idTable, br.lists.spells.Shared)
     end
-    if br.idList[class] ~= nil then
-        if br.idList[class].Shared ~= nil then
-            idTable = mergeTables(idTable, br.idList[class].Shared)
-            if br.idList[class].Shared.abilities ~= nil then
-                idTable = mergeTables(idTable, br.idList[class].Shared.abilities)
+    if br.lists.spells[class] ~= nil then
+        if br.lists.spells[class].Shared ~= nil then
+            idTable = mergeTables(idTable, br.lists.spells[class].Shared)
+            if br.lists.spells[class].Shared.abilities ~= nil then
+                idTable = mergeTables(idTable, br.lists.spells[class].Shared.abilities)
             end
         end
-        if br.idList[class][spec] ~= nil then
-            idTable = mergeTables(idTable, br.idList[class][spec])
-            if br.idList[class][spec].abilities ~= nil then
-                idTable = mergeTables(idTable, br.idList[class][spec].abilities)
+        if br.lists.spells[class][spec] ~= nil then
+            idTable = mergeTables(idTable, br.lists.spells[class][spec])
+            if br.lists.spells[class][spec].abilities ~= nil then
+                idTable = mergeTables(idTable, br.lists.spells[class][spec].abilities)
             end
         end
     end
@@ -596,7 +646,7 @@ end
 -- local myTable = {"hello", "world"}
 -- inTable(myTable, "hello") == true
 -- inTable(myTable, "WHAT?") == false
--- TODO: check if tContains() does the same wow api
+-- check if tContains() does the same wow api
 function inTable(tbl, item)
     for key, value in pairs(tbl) do
         if value == item then return key end
@@ -631,7 +681,7 @@ function hasBuff(spellID)
     while buff do
         buffs[#buffs + 1] = buff
         i = i + 1
-        buff = select(11,UnitBuff("player", i))
+        buff = select(10,UnitBuff("player", i))
         if buff ~= nil then
             if buff == spellID then return true end
         end
@@ -648,7 +698,7 @@ function cancelBuff(spellID)
     while buff do
         buffs[#buffs + 1] = buff
         i = i + 1
-        buff = select(11,UnitBuff("player", i))
+        buff = select(10,UnitBuff("player", i))
         if buff ~= nil then
             if buff == spellID then
                 CancelUnitBuff("player", i)
@@ -685,176 +735,220 @@ end
 -- specificID can be set if Pulltimer is NOT "Pull in"
 function br.DBM:getPulltimer(time, specificID)
     if br.DBM.Timer then
-        specificID = specificID or "Pull in"
-        local hasPulltimer = false
-        local isBelowTime = false
-        local pullTimer = 0
+        if IsAddOnLoaded('DBM-Core') then
+            local specificID = specificID or "Pull in"
+            local hasPullTimer = false
+            local isBelowTime = false
+            local pullTimer = 0
+            for i = 1, #br.DBM.Timer do
+                -- Check if a Pulltimer is present
+                --Print("get pull timer id="..br.DBM.Timer[i].id)
+                --Print("time="..br.DBM.Timer[i].timer)
 
-        for i = 1, #br.DBM.Timer do
-            -- Check if a Pulltimer is present
-            if br.DBM.Timer[i].id == specificID then
-                hasPulltimer = true
-                pullTimer = br.DBM.Timer[i].timer
-
-                -- if a time is given set var to true
-                if time then
-                    if pullTimer <= time then
-                        isBelowTime = true
+                --if br.DBM.Timer[i].id == specificID then
+                is_find , _ = string.find(br.DBM.Timer[i].id , tostring(specificID))
+                if is_find ~= nil then
+                    hasPullTimer = true
+                    pullTimer = br.DBM.Timer[i].timer
+                    -- if a time is given set var to true
+                    if time then
+                        if pullTimer <= time then
+                            isBelowTime = true
+                        end
+                        if hasPullTimer and isBelowTime then
+                            return true
+                        else
+                            return false
+                        end
+                    else
+                        if hasPullTimer then
+                            return pullTimer
+                        end
+                    end
+                end
+            end
+        elseif IsAddOnLoaded("BigWigs") then
+            local hasTimer = false
+            local isBelowTime = false
+            local currentTimer = 0
+            local specificID = specificID or "Pull"
+            for i = 1, #br.DBM.Timer do
+                -- Check if timer with spell id is present
+                if br.DBM.Timer[i] ~= nil and br.DBM.Timer[i].id == specificID then
+                    hasTimer = true
+                    currentTimer = br.DBM.Timer[i].exptime - GetTime()
+                    -- if a time is given set var to true
+                    if time then
+                        if currentTimer <= time then
+                            isBelowTime = true
+                        end
+                        if hasTimer and isBelowTime then
+                            return true
+                        else
+                            return false
+                        end
+                    else
+                        if hasTimer then
+                            return currentTimer
+                        end
                     end
                 end
             end
         end
-
-        -- if a time is given return true if pulltimer and below given time
-        -- else return time
-        if time ~= nil then
-            if hasPulltimer and isBelowTime then
-                return true
-            else
-                return false
-            end
-        else
-            if hasPulltimer then
-                return pullTimer
-            end
-        end
     end
+            -- if a time is given return true if timer and below given time
+            -- else return time
+        
     return 999 -- return number to avoid conflicts but to high so it should never trigger
 end
+-- function br.DBM:getPulltimer(time, specificID)
+--     if br.DBM.Timer then
+--         specificID = specificID or "Pull in"
+--         local hasPulltimer = false
+--         local isBelowTime = false
+--         local pullTimer = 0
+--         for i = 1, #br.DBM.Timer do
+--             -- Check if a Pulltimer is present
+--             --Print("get pull timer id="..br.DBM.Timer[i].id)
+--             --Print("time="..br.DBM.Timer[i].timer)
 
-function br.DBM:getPulltimer_fix(time, specificID)
-    if br.DBM.Timer then
-        specificID = specificID or "Pull in"
-        local hasPulltimer = false
-        local isBelowTime = false
-        local pullTimer = 0
-        for i = 1, #br.DBM.Timer do
-            -- Check if a Pulltimer is present
-            --Print("get pull timer id="..br.DBM.Timer[i].id)
-            --Print("time="..br.DBM.Timer[i].timer)
+--             --if br.DBM.Timer[i].id == specificID then
+--             is_find , _ = string.find(br.DBM.Timer[i].id , tostring(specificID))
+--             if is_find ~= nil then
+--                 hasPulltimer = true
+--                 pullTimer = br.DBM.Timer[i].timer
 
-            --if br.DBM.Timer[i].id == specificID then
-            is_find , _ = string.find(br.DBM.Timer[i].id , tostring(specificID))
-            if is_find ~= nil then
-                hasPulltimer = true
-                pullTimer = br.DBM.Timer[i].timer
+--                 -- if a time is given set var to true
+--                 if time then
+--                     if pullTimer <= time then
+--                         isBelowTime = true
+--                     end
+--                 end
+--             end
+--         end
 
-                -- if a time is given set var to true
-                if time then
-                    if pullTimer <= time then
-                        isBelowTime = true
-                    end
-                end
-            end
-        end
-
-        -- if a time is given return true if pulltimer and below given time
-        -- else return time
-        if time ~= nil then
-            if hasPulltimer and isBelowTime then
-                return true
-            else
-                return false
-            end
-        else
-            if hasPulltimer then
-                return pullTimer
-            end
-        end
-    end
-    return 999 -- return number to avoid conflicts but to high so it should never trigger
-end
+--         -- if a time is given return true if pulltimer and below given time
+--         -- else return time
+--         if time ~= nil then
+--             if hasPulltimer and isBelowTime then
+--                 return true
+--             else
+--                 return false
+--             end
+--         else
+--             if hasPulltimer then
+--                 return pullTimer
+--             end
+--         end
+--     end
+--     return 999 -- return number to avoid conflicts but to high so it should never trigger
+-- end
 
 
 --- Usage:
 -- 1 - br.DBM:getTimer(spellID) -> return (number) the count of given spell ID timer
 -- 2 - br.DBM:getTimer(spellID, time) -> return (boolean) TRUE if spellid is below given time else FALSE
-function br.DBM:getTimer(spellID, time)
-    if br.DBM.Timer then
-        local hasTimer = false
-        local isBelowTime = false
-        local currentTimer = 0
-
-        for i = 1, #br.DBM.Timer do
-            -- Check if timer with spell id is present
-            if br.DBM.Timer[i].spellid == spellID then
-                hasTimer = true
-                currentTimer = br.DBM.Timer[i].timer
-
-                -- if a time is given set var to true
-                if time then
-                    if currentTimer <= time then
-                        isBelowTime = true
+    function br.DBM:getTimer(spellID, time)
+        if br.DBM.Timer then
+            if IsAddOnLoaded('DBM-Core') then
+                local hasTimer = false
+                local isBelowTime = false
+                local currentTimer = 0
+                for i = 1, #br.DBM.Timer do
+                    -- Check if timer with spell id is present
+                    if tonumber(br.DBM.Timer[i].spellid) == spellID then
+                        hasTimer = true
+                        currentTimer = br.DBM.Timer[i].timer
+                        -- if a time is given set var to true
+                        if time then
+                            if currentTimer <= time then
+                                isBelowTime = true
+                            end
+                            if hasTimer and isBelowTime then
+                                return true
+                            else
+                                return false
+                            end
+                        else
+                            if hasTimer then
+                                return currentTimer
+                            end
+                        end
+                    end
+                end
+            elseif IsAddOnLoaded("BigWigs") then
+                local hasTimer = false
+                local isBelowTime = false
+                local currentTimer = 0
+                for i = 1, #br.DBM.Timer do
+                    -- Check if timer with spell id is present
+                    if br.DBM.Timer[i] ~= nil and br.DBM.Timer[i].id == spellID then
+                        hasTimer = true
+                        currentTimer = br.DBM.Timer[i].exptime - GetTime()
+                        -- if a time is given set var to true
+                        if time then
+                            if currentTimer <= time then
+                                isBelowTime = true
+                            end
+                            if hasTimer and isBelowTime then
+                                return true
+                            else
+                                return false
+                            end
+                        else
+                            if hasTimer then
+                                return currentTimer
+                            end
+                        end
                     end
                 end
             end
         end
+            -- if a time is given return true if timer and below given time
+            -- else return time
+        
+        return 999 -- return number to avoid conflicts but to high so it should never trigger
+    end
 
-        -- if a time is given return true if timer and below given time
-        -- else return time
-        if time ~= nil then
-            if hasTimer and isBelowTime then
-                return true
+-- Future position
+function GetFuturePostion(unit, castTime)
+    local distance = GetUnitSpeed(unit) * castTime
+    if distance > 0 then
+        local x,y,z = GetObjectPosition(unit)
+        local angle = ObjectFacing(unit)
+        --If Unit have a target, let's make sure they don't collide
+        local unitTarget = UnitTarget(unit)
+        local unitTargetDist = 0
+        if unitTarget ~= nil then
+            local tX, tY, tZ = GetObjectPosition(unitTarget)
+            --Lets get predicted position of unit target aswell
+            if GetUnitSpeed(unitTarget) > 0 then
+                local tDistance = GetUnitSpeed(unitTarget) * castTime
+                local tAngle = ObjectFacing(unitTarget)
+                tX = tX + cos(tAngle) * tDistance
+                tY = tY + sin(tAngle) * tDistance
+                unitTargetDist = sqrt(((tX-x)^2) + ((tY-y)^2) + ((tZ-z)^2)) - ((UnitCombatReach(unit) or 0) + (UnitCombatReach(unitTarget) or 0))
+                if unitTargetDist < distance then distance = unitTargetDist end
             else
-                return false
+                unitTargetDist = getDistance(unitTarget, unit, "dist")
+                if unitTargetDist < distance then distance = unitTargetDist end
             end
-        else
-            if hasTimer then
-                return currentTimer
+            -- calculate angle based on target position/future position
+            angle = rad(atan2(tY - y, tX - x))
+            if angle < 0 then
+                angle = rad(360 + atan2(tY - y, tX - x))
             end
         end
+        x = x + cos(angle) * distance
+        y = y + sin(angle) * distance
+        return x, y, z
     end
-    return 999 -- return number to avoid conflicts but to high so it should never trigger
+    return GetObjectPosition(unit)
 end
-
-local pullTimerTest
-local pullTimerEndTest
-if FH then
-    AddEventCallback("CHAT_MSG_ADDON",function (prefix, message)
-        if prefix == "D4" and string.find(message, "PT") then
-            pullTimerTest = tonumber(string.sub(message, 4, 5));
-            pullTimerEndTest = GetTime() + pullTimerTest;
-            --pullTimerRemainTest = pullTimerEndTest - GetTime()
-        elseif prefix == "BigWigs" and string.find(message, "Pull") then
-            pullTimerTest = tonumber(string.sub(message, 8, 9));
-            pullTimerEndTest = GetTime() + pullTimerTest;
-            --pullTimerRemainTest = pullTimerEndTest - GetTime()
-        end
-    end
-    )
-end
-
-local pullTimerRemainTest
---[[function PullTimerRemain(returnBool)
-    if returnBool == nil then returnBool = false end
-    if pullTimerEndTest ~= nil and pullTimerTest ~= nil then
-        if pullTimerEndTest - GetTime() ~= nil and pullTimerEndTest - GetTime() >= 0 then
-            pullTimerRemainTest = pullTimerEndTest - GetTime();
-            if returnBool == true then
-                return true
-            else
-                return math.abs(pullTimerRemainTest)
-            end
-        else
-            -- return 999 as debug
-            if returnBool == false then
-                return 999
-            elseif returnBool == true then
-                return false
-            end
-        end
-    elseif pullTimerEndTest == nil or pullTimerTest == nil or returnBool == false then
-        if returnBool == false then
-            return 999
-        else
-            return false
-        end
-    end
-end]]
 
 function PullTimerRemain(returnBool)
     if returnBool == nil then returnBool = false end
-    if not pullTimerTest or pullTimerTest == 0 or pullTimerEndTest - GetTime() < 0 then
+    if br.DBM:getPulltimer() == 999 then
         if returnBool == false then
             return 999
         else
@@ -862,9 +956,82 @@ function PullTimerRemain(returnBool)
         end
     else
         if returnBool == false then
-            return pullTimerEndTest - GetTime()
+            return br.DBM:getPulltimer()
         else
             return true
+        end
+    end
+end
+
+function BWInit()
+    if not br.DBM.Timer then
+        br.DBM.Timer = {}
+    end
+    if br.DBM.BigWigs ~= nil then return end
+    br.DBM.BigWigs = {}
+    local BigWigs = br.DBM.BigWigs
+    BigWigs.callback = {}
+    local callback = BigWigs.callback
+    BigWigs.BigwigsCallback = function(event, ...)
+        if event == "BigWigs_StartBar" then
+            local module, spellId, msg, duration, icon = ...
+            local clone = false
+            if spellId == nil then
+                if tostring(icon) == "134062" then
+                    -- print("break")
+                    spellId = "Break"
+                elseif tostring(icon) == "132337" then
+                    -- print("pull")
+                    spellId = "Pull"
+                else
+                    return
+                end
+            end
+            for i = 1, #br.DBM.Timer do
+                if br.DBM.Timer[i] ~= nil and br.DBM.Timer[i].id == spellId then
+                    clone = true
+                    br.DBM.Timer[i].exptime = GetTime() + duration
+                    break
+                end
+            end
+            if not clone then
+                local timer = {}
+                timer.id = spellId
+                timer.exptime = GetTime() + duration
+                tinsert(br.DBM.Timer, timer)
+                clone = false
+            end
+        elseif (event == "BigWigs_StopBars"
+            or event == "BigWigs_OnBossDisable"
+        or event == "BigWigs_OnPluginDisable") then
+            if #br.DBM.Timer > 0 then
+                local count = #br.DBM.Timer
+                for i = 0, count do
+                   br.DBM.Timer[i] = nil
+                end
+            end
+        else
+            -- print("lalala")
+        end
+    end
+    if BigWigsLoader then
+        BigWigs.callback = {}
+        BigWigsLoader.RegisterMessage(callback, "BigWigs_StartBar", BigWigs.BigwigsCallback);
+        BigWigsLoader.RegisterMessage(callback, "BigWigs_StopBars", BigWigs.BigwigsCallback);
+        BigWigsLoader.RegisterMessage(callback, "BigWigs_OnBossDisable", BigWigs.BigwigsCallback);
+        BigWigsLoader.RegisterMessage(callback, "BigWigs_OnPluginDisable", BigWigs.BigwigsCallback);
+    end
+end
+
+function BWCheck()
+    if #br.DBM.Timer > 0 then
+        for i = 1, #br.DBM.Timer do
+            if br.DBM.Timer[i] ~= nil then
+                if br.DBM.Timer[i].exptime < GetTime() then
+                    br.DBM.Timer[i] = nil
+                end
+            else
+            end
         end
     end
 end

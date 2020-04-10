@@ -6,8 +6,8 @@ local rotationName = "CuteOne"
 local function createToggles()
 -- Rotation Button
     RotationModes = {
-        [1] = { mode = "Auto", value = 1 , overlay = "Automatic Rotation", tip = "Swaps between Single and Multiple based on number of targets in range.", highlight = 1, icon = br.player.spell.swipe },
-        [2] = { mode = "Mult", value = 2 , overlay = "Multiple Target Rotation", tip = "Multiple target rotation used.", highlight = 0, icon = br.player.spell.swipe },
+        [1] = { mode = "Auto", value = 1 , overlay = "Automatic Rotation", tip = "Swaps between Single and Multiple based on number of targets in range.", highlight = 1, icon = br.player.spell.swipeBear },
+        [2] = { mode = "Mult", value = 2 , overlay = "Multiple Target Rotation", tip = "Multiple target rotation used.", highlight = 0, icon = br.player.spell.swipeBear },
         [3] = { mode = "Sing", value = 3 , overlay = "Single Target Rotation", tip = "Single target rotation used.", highlight = 0, icon = br.player.spell.mangle },
         [4] = { mode = "Off", value = 4 , overlay = "DPS Rotation Disabled", tip = "Disable DPS Rotation", highlight = 0, icon = br.player.spell.regrowth}
     };
@@ -33,8 +33,8 @@ local function createToggles()
     CreateButton("Interrupt",4,0)
 -- Cleave Button
 	CleaveModes = {
-        [1] = { mode = "On", value = 1 , overlay = "Cleaving Enabled", tip = "Rotation will cleave targets.", highlight = 1, icon = br.player.spell.thrash },
-        [2] = { mode = "Off", value = 2 , overlay = "Cleaving Disabled", tip = "Rotation will not cleave targets", highlight = 0, icon = br.player.spell.thrash }
+        [1] = { mode = "On", value = 1 , overlay = "Cleaving Enabled", tip = "Rotation will cleave targets.", highlight = 1, icon = br.player.spell.thrashBear },
+        [2] = { mode = "Off", value = 2 , overlay = "Cleaving Disabled", tip = "Rotation will not cleave targets", highlight = 0, icon = br.player.spell.thrashBear }
     };
     CreateButton("Cleave",5,0)
 -- Prowl Button
@@ -69,6 +69,8 @@ local function createOptions()
             br.ui:createCheckbox(section,"Displacer Beast / Wild Charge","|cff15FF00Enables|cffFFFFFF/|cffD60000Disables |cffFFFFFFAuto Charge usage.|cffFFBB00.")
         -- Growl
             br.ui:createCheckbox(section,"Growl","|cffFFFFFFAuto Growl usage.")
+        -- Maul At
+            br.ui:createSpinnerWithout(section, "Maul At",  90,  5,  100,  5,  "|cffFFFFFFSet to desired rage to cast Maul. Min: 5 / Max: 100 / Interval: 5")
         br.ui:checkSectionState(section)
     -- Cooldown Options
         section = br.ui:createSection(br.ui.window.profile, "Cooldowns")
@@ -94,7 +96,11 @@ local function createOptions()
         -- Barkskin
             br.ui:createSpinner(section, "Barkskin", 50, 0, 100, 5, "|cffFFBB00Health Percentage to use at.")
         -- Frenzied Regeneration
-            br.ui:createSpinner(section, "Frenzied Regeneration", 50, 0, 100, 5, "|cffFFBB00Health Loss Percentage to use at.")
+            br.ui:createDropdown(section, "Frenzied Regeneration", {"|cff00FF00By HP Loss Percent","|cffFF0000By HP Interval"}, 1, "|cffFFFFFFSelect FR's use behavior.")
+            br.ui:createSpinnerWithout(section, "FR - HP Loss Percent", 50, 0, 100, 5, "|cffFFBB00Health Loss Percentage to use at.")
+            br.ui:createSpinnerWithout(section, "FR - HP Interval (3 Charge)", 80, 0, 100, 5, "|cffFFBB00Health Interval to use at with 3 charges.")
+            br.ui:createSpinnerWithout(section, "FR - HP Interval (2 Charge)", 65, 0, 100, 5, "|cffFFBB00Health Interval to use at with 2 charges.")
+            br.ui:createSpinnerWithout(section, "FR - HP Interval (1 Charge)", 40, 0, 100, 5, "|cffFFBB00Health Interval to use at with 1 charge.")
         -- Ironfur
             br.ui:createCheckbox(section, "Ironfur")
         -- Rage of the Sleeper
@@ -175,7 +181,7 @@ local function runRotation()
         local addsIn                                        = 999
         local artifact                                      = br.player.artifact
         local buff                                          = br.player.buff
-        local canFlask                                      = canUse(br.player.flask.wod.agilityBig)
+        local canFlask                                      = canUseItem(br.player.flask.wod.agilityBig)
         local cast                                          = br.player.cast
         local combatTime                                    = getCombatTime()
 	    local combo                                         = br.player.power.comboPoints.amount()
@@ -184,10 +190,10 @@ local function runRotation()
         local deadMouse                                     = UnitIsDeadOrGhost("mouseover")
         local deadtar, attacktar, hastar, playertar         = deadtar or UnitIsDeadOrGhost("target"), attacktar or UnitCanAttack("target", "player"), hastar or GetObjectExists("target"), UnitIsPlayer("target")
         local debuff                                        = br.player.debuff
-        local enemies                                       = enemies or {}
+        local enemies                                       = br.player.enemies
         local falling, swimming, flying, moving             = getFallTime(), IsSwimming(), IsFlying(), GetUnitSpeed("player")>0
         local flaskBuff                                     = getBuffRemain("player",br.player.flask.wod.buff.agilityBig)
-        local friendly                                      = UnitIsFriend("target", "player")
+        local friendly                                      = GetUnitIsFriend("target", "player")
         local gcd                                           = br.player.gcd
         local hasMouse                                      = GetObjectExists("mouseover")
         local healPot                                       = getHealthPot()
@@ -215,18 +221,18 @@ local function runRotation()
         local trinketProc                                   = false
         local ttd                                           = getTTD
         local ttm                                           = br.player.power.rage.ttm
-        local units                                         = units or {}
+        local units                                         = br.player.units
 
-        units.dyn5 = br.player.units(5)
-	units.dyn8 = br.player.units(8)
-	units.dyn40 = br.player.units(40)
-        enemies.yards5 = br.player.enemies(5)
-        enemies.yards8 = br.player.enemies(8)
-        enemies.yards10 = br.player.enemies(10)
-        enemies.yards13 = br.player.enemies(13)
-        enemies.yards20 = br.player.enemies(20)
-        enemies.yards30 = br.player.enemies(30)
-        enemies.yards40 = br.player.enemies(40)
+        units.get(5)
+	    units.get(8)
+        units.get(40)
+        enemies.get(5)
+        enemies.get(8)
+        enemies.get(10)
+        enemies.get(13)
+        enemies.get(20)
+        enemies.get(30)
+        enemies.get(40)
 
    		if leftCombat == nil then leftCombat = GetTime() end
 		if profileStop == nil then profileStop = false end
@@ -317,9 +323,9 @@ local function runRotation()
                 if isChecked("Pot/Stoned") and php <= getOptionValue("Pot/Stoned")
                     and inCombat and (hasHealthPot() or hasItem(5512))
                 then
-                    if canUse(5512) then
+                    if canUseItem(5512) then
                         useItem(5512)
-                    elseif canUse(healPot) then
+                    elseif canUseItem(healPot) then
                         useItem(healPot)
                     end
                 end
@@ -330,9 +336,16 @@ local function runRotation()
                     end
                 end
         -- Frenzied Regeneration
-                if isChecked("Frenzied Regeneration") then
-                    if (snapLossHP >= getOptionValue("Frenzied Regeneration") or (snapLossHP > php and snapLossHP > 5)) and not buff.frenziedRegeneration.exists() then
+                if isChecked("Frenzied Regeneration") and cast.able.frenziedRegeneration() and not buff.frenziedRegeneration.exists() then
+                    if getOptionValue("Frenzied Regeneration") == 1 and (snapLossHP >= getOptionValue("FR - HP Loss Percent") or (snapLossHP > php and snapLossHP > 5)) then
                         if cast.frenziedRegeneration() then snapLossHP = 0; return end
+                    end
+                    if getOptionValue("Frenzied Regeneration") == 2
+                        and ((charges.frenziedRegeneration.count() >= 3 and php < getOptionValue("FR - HP Interval (3 Charge)"))
+                        or (charges.frenziedRegeneration.count() >= 2 and php < getOptionValue("FR - HP Interval (2 Charge)"))
+                        or (charges.frenziedRegeneration.count() >= 1 and php < getOptionValue("FR - HP Interval (1 Charge)")))
+                    then
+                        if cast.frenziedRegeneration() then return end
                     end
                 end
         -- Rage of the Sleeper
@@ -362,24 +375,24 @@ local function runRotation()
         --Revive/Rebirth
                 if isChecked("Rebirth") then
                     if getOptionValue("Rebirth - Target")==1
-                        and UnitIsPlayer("target") and UnitIsDeadOrGhost("target") and UnitIsFriend("target","player")
+                        and UnitIsPlayer("target") and UnitIsDeadOrGhost("target") and GetUnitIsFriend("target","player")
                     then
                         if cast.rebirth("target","dead") then return end
                     end
                     if getOptionValue("Rebirth - Target")==2
-                        and UnitIsPlayer("mouseover") and UnitIsDeadOrGhost("mouseover") and UnitIsFriend("mouseover","player")
+                        and UnitIsPlayer("mouseover") and UnitIsDeadOrGhost("mouseover") and GetUnitIsFriend("mouseover","player")
                     then
                         if cast.rebirth("mouseover","dead") then return end
                     end
                 end
                 if isChecked("Revive") then
                     if getOptionValue("Revive - Target")==1
-                        and UnitIsPlayer("target") and UnitIsDeadOrGhost("target") and UnitIsFriend("target","player")
+                        and UnitIsPlayer("target") and UnitIsDeadOrGhost("target") and GetUnitIsFriend("target","player")
                     then
                         if cast.revive("target","dead") then return end
                     end
                     if getOptionValue("Revive - Target")==2
-                        and UnitIsPlayer("mouseover") and UnitIsDeadOrGhost("mouseover") and UnitIsFriend("mouseover","player")
+                        and UnitIsPlayer("mouseover") and UnitIsDeadOrGhost("mouseover") and GetUnitIsFriend("mouseover","player")
                     then
                         if cast.revive("mouseover","dead") then return end
                     end
@@ -452,17 +465,17 @@ local function runRotation()
                 -- TODO: if=(buff.tigers_fury.up&(target.time_to_die>trinket.stat.any.cooldown|target.time_to_die<45))|buff.incarnation.remain()s>20
 				if isChecked("Trinkets") then
                     -- if (buff.tigersFury and (ttd(units.dyn5) > 60 or ttd(units.dyn5) < 45)) or buff.remain().incarnationKingOfTheJungle > 20 then
-						if canUse(13) then
+						if canUseItem(13) then
 							useItem(13)
 						end
-						if canUse(14) then
+						if canUseItem(14) then
 							useItem(14)
 						end
                     -- end
 				end
         -- Agi-Pot
                 -- -- if=((buff.berserk.remain()s>10|buff.incarnation.remain()s>20)&(target.time_to_die<180|(trinket.proc.all.react&target.health.pct<25)))|target.time_to_die<=40
-                -- if useCDs() and isChecked("Agi-Pot") and canUse(0) and inRaid then
+                -- if useCDs() and isChecked("Agi-Pot") and canUseItem(0) and inRaid then
                 --     if ((buff.remain().berserk > 10 or buff.remain().incarnationKingOfTheJungle > 20) and (ttd(units.dyn5) < 180 or (trinketProc and getHP(units.dyn5)<25))) or ttd(units.dyn5)<=40 then
                 --         useItem(agiPot);
                 --         return true
@@ -471,7 +484,7 @@ local function runRotation()
         -- Legendary Ring
                 -- use_item,slot=finger1
                 if isChecked("Legendary Ring") then
-                    if hasEquiped(124636) and canUse(124636) then
+                    if hasEquiped(124636) and canUseItem(124636) then
                         useItem(124636)
                         return true
                     end
@@ -499,7 +512,7 @@ local function runRotation()
                             return true
                         end
                         if flaskBuff==0 then
-                            if not UnitBuffID("player",188033) and canUse(118922) then --Draenor Insanity Crystal
+                            if not UnitBuffID("player",188033) and canUseItem(118922) then --Draenor Insanity Crystal
                                 useItem(118922)
                                 return true
                             end
@@ -539,7 +552,7 @@ local function runRotation()
             if inCombat and cat and talent.feralAffinity and isValidUnit("target") and profileStop==false then
 				-- Swipe
 				if (#enemies.yards8 > 1 and #enemies.yards8 < 4 and debuff.rake.exists(units.dyn8)) or #enemies.yards8 >= 4 then
-					if cast.swipe() then return end
+					if cast.swipeCat() then return end
 				end
 				-- Rip
 				if combo == 5 and #enemies.yards8 < 4 then
@@ -607,7 +620,7 @@ local function runRotation()
                     if talent.pulverize then
                         for i = 1, #enemies.yards5 do
                             local thisUnit = enemies.yards5[i]
-                            if debuff.thrash.stack(thisUnit) >= 3 then
+                            if debuff.thrashBear.stack(thisUnit) >= 3 then
                                 if cast.pulverize(thisUnit) then return end
                             end
                         end
@@ -617,7 +630,7 @@ local function runRotation()
                     if #enemies.yards40 < 4 then
                         for i = 1, #enemies.yards40 do
                             local thisUnit = enemies.yards40[i]
-                            if isValidUnit(thisUnit) and (multidot or (UnitIsUnit(thisUnit,units.dyn5) and not multidot)) then
+                            if isValidUnit(thisUnit) and (multidot or (GetUnitIsUnit(thisUnit,units.dyn5) and not multidot)) then
                                 -- moonfire,if=buff.galactic_guardian.up=1&(!ticking|dot.moonfire.remains<=4.8)
                                 if buff.galacticGuardian.exists() and (not debuff.moonfire.exists(thisUnit) or debuff.moonfire.refresh(thisUnit)) then
                                     if cast.moonfire(thisUnit) then return end
@@ -632,7 +645,7 @@ local function runRotation()
         -- Thrash
                     -- thrash_bear
                     if getDistance("target") < 8 then
-                        if cast.thrash() then return end
+                        if cast.thrashBear() then return end
                     end
         -- Mangle
                     -- mangle
@@ -641,7 +654,7 @@ local function runRotation()
                     if #enemies.yards40 < 4 then
                         for i = 1, #enemies.yards40 do
                             local thisUnit = enemies.yards40[i]
-                            if isValidUnit(thisUnit) and (multidot or (UnitIsUnit(thisUnit,units.dyn5) and not multidot)) then
+                            if isValidUnit(thisUnit) and (multidot or (GetUnitIsUnit(thisUnit,units.dyn5) and not multidot)) then
                                 -- moonfire,if=dot.moonfire.remains<=4.8
                                 if debuff.moonfire.refresh(thisUnit) then
                                     if cast.moonfire(thisUnit) then return end
@@ -650,13 +663,13 @@ local function runRotation()
                         end
                     end
         -- Maul
-                    if power > 90 then
+                    if power >= getOptionValue("Maul At") then
                         if cast.maul() then return end
                     end
         -- Swipe
                     -- swipe_bear
                     if getDistance("target") < 8 then
-                        if cast.swipe() then return end
+                        if cast.swipeBear() then return end
                     end
                 end -- End SimC APL
     ------------------------
@@ -669,7 +682,7 @@ local function runRotation()
 		end --End Rotation Logic
     end -- End Timer
 end -- End runRotation
-local id = 104
+local id = 0 --104
 if br.rotations[id] == nil then br.rotations[id] = {} end
 tinsert(br.rotations[id],{
     name = rotationName,

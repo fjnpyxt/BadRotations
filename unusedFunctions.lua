@@ -68,7 +68,7 @@ function getVengeance()
     elseif select(3,UnitClass("player")) == 11 then VengeanceID = 84840 -- Druid
     end
     if UnitBuff("player",VengeanceID) then
-        return select(15,UnitAura("player",GetSpellInfo(VengeanceID)))
+        return select(14,UnitAura("player",GetSpellInfo(VengeanceID)))
     end
     return 0
 end
@@ -77,7 +77,7 @@ function getLoot2()
     if looted == nil then looted = 0 end
     if lM:emptySlots() then
         for i=1,GetObjectCountBR() do
-            if GetObjectExists(i) and bit.band(GetObjectType(i), ObjectTypes.Unit) == 8 then
+            if GetObjectExists(i) and bit.band(GetObjectType(i), ObjectType.Unit) == 8 then
                 local thisUnit = GetObjectIndex(i)
                 local hasLoot,canLoot = CanLootUnit(UnitGUID(thisUnit))
                 local inRange = getDistance("player",thisUnit) < 2
@@ -169,7 +169,7 @@ tauntsTable = {
 --[[Taunt function!! load once]]
 function ShouldTaunt()
     --[[Normal boss1 taunt method]]
-    if not UnitIsUnit("player","boss1target") then
+    if not GetUnitIsUnit("player","boss1target") then
         for i = 1,#tauntsTable do
             if not UnitDebuffID("player",tauntsTable[i].spell) and UnitDebuffID("boss1target",tauntsTable[i].spell) and getDebuffStacks("boss1target",tauntsTable[i].spell) >= tauntsTable[i].stacks then
                 TargetUnit("boss1")

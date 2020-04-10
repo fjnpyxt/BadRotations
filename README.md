@@ -1,6 +1,6 @@
 De BadRotations
 
-## Patch 7.0+
+## Patch 8.0+
 
 Please refer to list below for status of profiles.
 
@@ -14,7 +14,7 @@ BadRotations Maintained By: CuteOne
 
 -- Intro --
 
-BadRotations is maintained by CuteOne with additional contributions from other developers who worked on combat rotation bots such as PQR, ProbablyEngine, and others. While it is more of a developer playground as compared to the more "for profit" bots this is free to use and we feel it is just as good, if not better, than the bots you pay money for. Don't agree? Feel free to post any issues you have and we will do our best to resolve them. **Please note that FireHack/Easy WoW Toolbox/wToolkit is required to use this.**
+BadRotations is maintained by CuteOne with additional contributions from other developers who worked on combat rotation bots such as PQR, ProbablyEngine, and others. While it is more of a developer playground as compared to the more "for profit" bots this is free to use and we feel it is just as good, if not better, than the bots you pay money for. Don't agree? Feel free to post any issues you have and we will do our best to resolve them. **Please note that you MUST have a Lua Unlocker to use this tool.**
 
 -- Features --
 
@@ -47,7 +47,13 @@ If you want to know what changes were made read the commit messages. Most of the
 
 ## Regarding Lua Errors
 
-Please submit any errors as issues here on GitHub or join the BadRotations discord: https://discord.gg/e3MMj9M.
+Please submit any errors as issues here on GitHub or join the BadRotations community:
+
+Discord channel:
+https://discord.gg/VE7V7Mz
+
+Slack channel:
+https://join.slack.com/t/badrotations/shared_invite/enQtODQ2NjkzNDEzOTA0LWQzY2ZjZTBlYzkwNDc4ZGExMzkzZGVkMmNiZWViMGUzNGQxNmVhMTRhNjIzMDQzYjUzNzAyYTdlZTFlZjA2YTg
 
 ## Regarding Crashing
 
@@ -62,11 +68,11 @@ What to do if you have crash to desktop or 132 errors.(not necessarily in this o
 
 - Change WoW to DX9.
 
-- Re-downloaded fresh updated FH version.
+- Make sure your lua unlocker is up to date.
 
 - Delete Cache, WTF, Data/indices folders(in WoW directory).
 
-- Start WoW-64.exe and FireHack.exe as Admin, always.
+- Make sure you start both WoW and your unlocker as an Admin.
 
 What to do if you have crash to desktop or 134 errors.
 
@@ -86,7 +92,7 @@ Raidable means if its good to raid with.
 
 - :white_check_mark: - works good
 - :x: - should not be used in raid
-- :heavy_check_mark: - has basic rotation, but not optimal for serious raiding
+- :heavy_check_mark: - handles rotations, but no advanced features
 - :interrobang: - currently unknown or in development; give feedback :D
 - BH - has BossHelper support, features things like using specific spell based on current boss etc.
 
@@ -96,22 +102,19 @@ Raidable means if its good to raid with.
 
 author  | support | patch | status |     raidable?
 :------ | :-----: | :---: | -----: | :----------------:
-CuteOne |  Full   |  7.1  |   100% | :white_check_mark:
-Vilt    | Limited |  7.1  |   100% | :white_check_mark:
+Panglo    | Unknown |  8.3  |   100% | :white_check_mark:
 
 - Frost
 
 author  | support | patch | status |   raidable?
 :------ | :-----: | :---: | -----: | :-----------:
-CuteOne |  Full   | 7.1.5 |   100% | :interrobang:
-THFrost |  Full   | 7.1.5 |   100% | :interrobang:
+CuteOne |  Full   |  8.3  |   100% | :white_check_mark:
 
 - Unholy
 
 author   | support | patch | status | raidable?
 :------- | :-----: | :---: | -----: | :-------:
-THUnholy | Full    | 7.1.5 |  100%  | :white_check_mark:
-Lemon | Full    | 7.2.5 |  100%  | :heavy_check_mark:
+CuteOne  |  Full   |  8.3  |   100% | :white_check_mark:
 
 ### Demon Hunter
 
@@ -119,14 +122,15 @@ Lemon | Full    | 7.2.5 |  100%  | :heavy_check_mark:
 
 author  | support | patch | status |     raidable?
 :------ | :-----: | :---: | -----: | :----------------:
-CuteOne |  Full   | 7.2   |   100% | :white_check_mark:
+CuteOne |  Full   |  8.3  |   100% | :white_check_mark:
+Kuukuu  |Sporadic |  8.3  |   99%  | :white_check_mark:
 
 - Vengeance
 
 author  | support  | patch | status |     raidable?
 :------ | :------: | :---: | -----: | :----------------:
-CuteOne |   Full   |  7.2  |   100% | :white_check_mark:
-Dubwub  | Inactive |  7.1  |   100% |   :interrobang:
+CuteOne |   Full   |  8.0  |   99%  | :white_check_mark:
+Kuukuu  |Sporadic  |  8.3  |   99%  | :white_check_mark:
 
 ### Druid
 
@@ -134,67 +138,66 @@ Dubwub  | Inactive |  7.1  |   100% |   :interrobang:
 
 author   | support  | patch | status |     raidable?
 :------- | :------: | :---: | -----: | :----------------:
-CuteOne  |   Full   | 7.2   |   100% | :white_check_mark:
+CuteOne  |   Full   |  8.3  |   100% | :white_check_mark:
 
 - Guardian
 
 author  | support | patch | status |     raidable?
 :------ | :-----: | :---: | -----: | :----------------:
-CuteOne |  Full   |  7.1  |   100% | :white_check_mark:
+Panglo  |  Full   |  8.0  |   100% | :white_check_mark:
 
 - Moonkin
 
-author  | support | patch | status |     raidable?
-:------ | :-----: | :---: | -----: | :----------------:
-LyLoLoq |  Full   | 7.2.5   |   100% | :white_check_mark:
+author           | support | patch | status |     raidable?
+:--------------- | :-----: | :---: | -----: | :----------------:
+Laksmackt        |  Full   | 8.3   |   100% | :white_check_mark:
 
 - Restoration
 
-author | support | patch | status |     raidable?
-:----- | :-----: | :---: | -----: | :----------------:
-Svs    |  Full   | 7.1.5 |   100% | :white_check_mark:
+author           | support | patch | status |     raidable?
+:--------------- | :-----: | :---: | -----: | :----------------:
+Aura             |  Full   | 8.2   |   99%  | :white_check_mark:
+Laksmackt        |  M+     | 8.3   |   100%  | :x:
 
 ### Hunter
-
 - Beastmaster
 
 author   | support  | patch | status |     raidable?
 :------- | :------: | :---: | -----: | :----------------:
-Cpoworks | Sporadic |  7.1  |    70% | :heavy_check_mark:
-Kuukuu   | Inactive |  7.2  |    90% | :white_check_mark:
+CuteOne  |  Full    |  8.3  |   100% | :white_check_mark:
 
 - Marksmanship
 
 author   | support  | patch | status |     raidable?
 :------- | :------: | :---: | -----: | :----------------:
-CuteOne  | Sporadic |  7.1  |    70% | :heavy_check_mark:
+CuteOne  |  Full    |  8.3  |   100% | :interrobang:
 
 - Survival
 
-author           |    support    | patch | status |   raidable?
-:--------------- | :-----------: | :---: | -----: | :-----------:
-CuteOne          | Full          | 7.1.5 |    90% | :interrobang:
+author   | support  | patch | status |   raidable?
+:------- | :------: | :---: | -----: | :-----------:
+CuteOne  |  Full    |  8.3  |   100% | :white_check_mark:
 
 ### Mage
 
 - Arcane
 
-author | support  | patch | status |   raidable?
-:----- | :------: | :---: | -----: | :-----------:
-dbtftw | Inactive |  7.1  |    90% | :interrobang:
+author |   support   | patch | status |   raidable?
+:----- | :---------: | :---: | -----: | :-----------:
+Reyne  |  Inactive   | 8.0   |   100% | :interrobang:
 
 - Fire
 
 author          | support | patch | status |   raidable?
 :-------------- | :-----: | :---: | -----: | :-----------:
-winston/cryteks |  Full   | 7.1.5 |   100% | :interrobang:
+winston         |  Full   | 8.0 |   99% | :interrobang:
+Psy             |  Full   | 8.3   | 90% | :white_check_mark:
 
 - Frost
 
-author | support  | patch | status |   raidable?
-:----- | :------: | :---: | -----: | :-----------:
-dbtftw | Inactive | 7.1.5 |   100% | :interrobang:
-Lemon  |   Full   | 7.2.5 |   100% | :heavy_check_mark:
+author | support      | patch | status |   raidable?
+:----- | :---------:  | :---: | -----: | :-----------:
+Reyne  |   Inactive   | 8.0   |   100% | :interrobang:
 
 ### Monk
 
@@ -202,20 +205,20 @@ Lemon  |   Full   | 7.2.5 |   100% | :heavy_check_mark:
 
 author | support | patch | status |     raidable?
 :----- | :-----: | :---: | -----: | :----------------:
-Kuukuu | Inactive| 7.2.5 |    90% | :white_check_mark:
+Panglo |   Full  |  8.0  |    100%| :white_check_mark:
 
 - Mistweaver
 
 author   | support  | patch | status |     raidable?
 :------- | :------: | :---: | -----: | :----------------:
-Cpoworks | Sporadic | 7.1.5 |    70% | :heavy_check_mark:
-Javaxio  |   Full   | 7.2.5 |   100% | :white_check_mark:
+Panglo   | Full     | 8.1   |    75% | :interrobang:
+Laksmackt   | Full     | 8.3   |    75% | :heavy_check_mark:
 
 - Windwalker
 
 author  | support | patch | status |     raidable?
 :------ | :-----: | :---: | -----: | :----------------:
-CuteOne |  Full   | 7.2   |   100% | :white_check_mark:
+CuteOne |  Full   |  8.3  |   99%  | :white_check_mark:
 
 ### Paladin
 
@@ -223,42 +226,42 @@ CuteOne |  Full   | 7.2   |   100% | :white_check_mark:
 
 author   | support | patch | status | raidable?
 :-----   | :-----: | :---: | -----: | :-------:
-Fengshen |  Full   | 7.2.5 |   100% | :white_check_mark:
+Laksmackt |  none   | 8.3 |   99% | :white_check_mark:
 
 - Protection
 
 author | support  | patch | status |   raidable?
 :----- | :------: | :---: | -----: | :-----------:
-wink   | Sporadic | 7.1.5 |   100% | :interrobang:
+Fengshen| Inactive | 8.0 |   99% | :interrobang:
+Panglo | Full     | 8.3   | ???    | :white_check_mark:
 
 - Retribution
 
 author  | support | patch | status |     raidable?
 :------ | :-----: | :---: | -----: | :----------------:
-CuteOne |  Full   | 7.1.5 |   100% | :white_check_mark:
+CuteOne |  Full   | 8.2   |   100% | :white_check_mark:
+Fiskee  |  Full   | 8.0   |   99%  | :white_check_mark:
 
 ### Priest
 
 - Discipline
 
-author       |    support    | patch |  status |     raidable?
-:----------- | :-----------: | :---: | ------: | :----------------:
-Bizkut       |     Full      | 7.1.5 |    100% |   :interrobang:
-JR           |    5-man      |  7.3  |     90% |   :interrobang:
+author  |    support    | patch |  status |     raidable?
+:-------| :-----------: | :---: | ------: | :----------------:
+Aura    |     Full      | 8.2   |    100% |   :white_check_mark:
 
 - Holy
 
-author          | support | patch | status | raidable?
-:-------------- | :-----: | :---: | -----: | :-------:
-Odan(Svs)       |  Full   |  7.2  |   100% | :white_check_mark:
-JR              |  Full   |  7.3  |   100% | :white_check_mark:
+author     | support | patch | status | raidable?
+:--------- | :-----: | :---: | -----: | :-------:
+Aura       | Full    | 8.2   |   100% |   :white_check_mark:
 
 - Shadow
 
 author           |    support    | patch | status | raidable?
 :--------------- | :-----------: | :---: | -----: | :-------:
-CuteOne          | Full          |  7.2  |    90% |    :x:
-JR               | Full          |  7.3  |   100% | :white_check_mark:
+winston       | Full          | 8.0  |   95% | :white_check_mark:
+Panglo           | Full          | 8.2   | ???    | :white_check_mark:
 
 ### Rogue
 
@@ -266,21 +269,21 @@ JR               | Full          |  7.3  |   100% | :white_check_mark:
 
 author  | support | patch | status |     raidable?
 :------ | :-----: | :---: | -----: | :----------------:
-CuteOne |  Full   | 7.2   |   90%  | :white_check_mark:
+Fiskee  |  Full   | 8.0   |   100%  | :white_check_mark:
+Immy    |  Full   | 8.0   |   100%  | :white_check_mark:
 
 - Outlaw
 
 author  | support | patch | status |     raidable?
 :------ | :-----: | :---: | -----: | :----------------:
-CuteOne |  Full   | 7.1.5 |   100% | :white_check_mark:
-Vilt    | Full (for now) | 7.2 |   100% | :white_check_mark:
+Vilt    | Inactive| 8.0   |   99%  | :white_check_mark:
+Immy    |  Full   | 8.0   |   100% | :white_check_mark:
 
 - Subtlety
 
 author  | support | patch | status |     raidable?
 :------ | :-----: | :---: | -----: | :----------------:
-CuteOne |  Full   | 7.1.5 |    90% |        :x:
-Vilt    | Limited | 7.1.5 |   100% | :white_check_mark:
+Fiskee  |  Full   | 8.0   |   100% | :white_check_mark:
 
 ### Shaman
 
@@ -288,19 +291,20 @@ Vilt    | Limited | 7.1.5 |   100% | :white_check_mark:
 
 author  | support | patch | status |   raidable?
 :------ | :-----: | :---: | -----: | :-----------:
-CuteOne |  Full   | 7.2   |   100% | :interrobang:
+Aura    |  Full   | 8.0   |   90% | :white_check_mark:
 
 - Enhancement
 
 author  | support | patch | status |     raidable?
 :------ | :-----: | :---: | -----: | :----------------:
-CuteOne |  Full   | 7.1.5 |   100% | :white_check_mark:
+CuteOne |  Full   | 8.3   |   99%  | :white_check_mark:
+Aura    |  Full   | 8.0   |   90%  | :white_check_mark:
 
 - Restoration
 
 author | support | patch | status |     raidable?
 :----- | :-----: | :---: | -----: | :----------------:
-Svs    |  Full   | 7.1.5 |    100% | :white_check_mark:
+Aura   |  Full   | 8.2   |   90%  |  :white_check_mark:
 
 ### Warlock
 
@@ -308,19 +312,20 @@ Svs    |  Full   | 7.1.5 |    100% | :white_check_mark:
 
 author  | support | patch | status |     raidable?
 :------ | :-----: | :---: | -----: | :----------------:
-CuteOne |  Full   | 7.1.5 |   100% | :white_check_mark:
+Fiskee  |  Full   | 8.0 |   100% | :white_check_mark:
 
 - Demonology
 
-author          | support | patch | status |     raidable?
-:-------------- | :-----: | :---: | -----: | :----------------:
-CuteOne         |  Full   | 7.2 |   100% | :white_check_mark:
+author        | support | patch | status |     raidable?
+:------------ | :-----: | :---: | -----: | :----------------:
+Fiskee        |  Full   | 8.0   |   99%  | :white_check_mark:
 
 - Destruction
 
 author  | support | patch | status |     raidable?
 :------ | :-----: | :---: | -----: | :----------------:
-CuteOne |  Full   | 7.1.5 |   100% | :white_check_mark:
+Fiskee  |  Full   | 8.0 |   100% | :white_check_mark:
+Aura    |  Full   | 8.3   |   90%  |  :white_check_mark:
 
 ### Warrior
 
@@ -328,17 +333,17 @@ CuteOne |  Full   | 7.1.5 |   100% | :white_check_mark:
 
 author  | support | patch | status |     raidable?
 :------ | :-----: | :---: | -----: | :----------------:
-CuteOne |  Full   | 7.1.5 |   100% | :white_check_mark:
-Lemon |  Full   | 7.2.5 |   100% | :interrobang:
+CuteOne |  Full   | 8.0 |   100% | :white_check_mark:
 
 - Fury
 
 author  | support | patch | status |     raidable?
 :------ | :-----: | :---: | -----: | :----------------:
-CuteOne |  Full   | 7.1.5 |   100% | :white_check_mark:
+CuteOne |  Full   | 8.0 |   100% | :white_check_mark:
+Panglo  |  Full   | 8.0 |   100% | :white_check_mark:
 
 - Protection
 
 author  | support | patch | status |     raidable?
 :------ | :-----: | :---: | -----: | :----------------:
-CuteOne |  Full   | 7.1.5 |   100% | :white_check_mark:
+Panglo  |  Full   | 8.0   |   100% | :white_check_mark:

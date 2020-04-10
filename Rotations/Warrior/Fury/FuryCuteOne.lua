@@ -8,15 +8,15 @@ local function createToggles()
     RotationModes = {
         [1] = { mode = "Auto", value = 1 , overlay = "Automatic Rotation", tip = "Swaps between Single and Multiple based on number of #enemies.yards8 in range.", highlight = 1, icon = br.player.spell.whirlwind },
         [2] = { mode = "Mult", value = 2 , overlay = "Multiple Target Rotation", tip = "Multiple target rotation used.", highlight = 0, icon = br.player.spell.bladestorm },
-        [3] = { mode = "Sing", value = 3 , overlay = "Single Target Rotation", tip = "Single target rotation used.", highlight = 0, icon = br.player.spell.furiousSlash },
+        [3] = { mode = "Sing", value = 3 , overlay = "Single Target Rotation", tip = "Single target rotation used.", highlight = 0, icon = br.player.spell.ragingBlow },
         [4] = { mode = "Off", value = 4 , overlay = "DPS Rotation Disabled", tip = "Disable DPS Rotation", highlight = 0, icon = br.player.spell.enragedRegeneration}
     };
     CreateButton("Rotation",1,0)
 -- Cooldown Button
     CooldownModes = {
-        [1] = { mode = "Auto", value = 1 , overlay = "Cooldowns Automated", tip = "Automatic Cooldowns - Boss Detection.", highlight = 1, icon = br.player.spell.battleCry },
-        [2] = { mode = "On", value = 2 , overlay = "Cooldowns Enabled", tip = "Cooldowns used regardless of target.", highlight = 0, icon = br.player.spell.battleCry },
-        [3] = { mode = "Off", value = 3 , overlay = "Cooldowns Disabled", tip = "No Cooldowns will be used.", highlight = 0, icon = br.player.spell.battleCry }
+        [1] = { mode = "Auto", value = 1 , overlay = "Cooldowns Automated", tip = "Automatic Cooldowns - Boss Detection.", highlight = 1, icon = br.player.spell.recklessness },
+        [2] = { mode = "On", value = 2 , overlay = "Cooldowns Enabled", tip = "Cooldowns used regardless of target.", highlight = 0, icon = br.player.spell.recklessness },
+        [3] = { mode = "Off", value = 3 , overlay = "Cooldowns Disabled", tip = "No Cooldowns will be used.", highlight = 0, icon = br.player.spell.recklessness }
     };
     CreateButton("Cooldown",2,0)
 -- Defensive Button
@@ -54,21 +54,23 @@ local function createOptions()
             br.ui:createSpinner(section, "DPS Testing",  5,  5,  60,  5,  "|cffFFFFFFSet to desired time for test in minuts. Min: 5 / Max: 60 / Interval: 5")
             -- Pre-Pull Timer
             br.ui:createSpinner(section, "Pre-Pull Timer",  5,  1,  10,  1,  "|cffFFFFFFSet to desired time to start Pre-Pull (DBM Required). Min: 1 / Max: 10 / Interval: 1")
-            -- Artifact
-            br.ui:createDropdownWithout(section,"Artifact", {"|cff00FF00Everything","|cffFFFF00Cooldowns","|cffFF0000Never"}, 1, "|cffFFFFFFWhen to use Artifact Ability.")
+            -- AoE Slider
+            br.ui:createSpinnerWithout(section, "AoE Threshold",  2,  1,  10,  1,  "|cffFFFFFFSet to desired targets to start AoE Rotation. Min: 1 / Max: 10 / Interval: 1")
+            -- Battle Shout
+            br.ui:createCheckbox(section,"Battle Shout")
             -- Bladestorm Units
             br.ui:createSpinnerWithout(section, "Bladestorm Units", 3, 1, 10, 1, "|cffFFFFFFSet to desired minimal number of units required to use Bladestorm.")
             -- Berserker Rage
             br.ui:createCheckbox(section,"Berserker Rage", "Check to use Berserker Rage")
+            -- Charge
+            br.ui:createCheckbox(section,"Charge", "Check to use Charge")
             -- Heroic Leap
             br.ui:createDropdown(section,"Heroic Leap", br.dropOptions.Toggle, 6, "Set auto usage (No Hotkey) or desired hotkey to use Heroic Leap.")
             br.ui:createDropdownWithout(section,"Heroic Leap - Target",{"Best","Target"},1,"Desired Target of Heroic Leap")
             -- Piercing Howl
             br.ui:createCheckbox(section,"Piercing Howl", "Check to use Piercing Howl")
-            -- Whirlwind Units
-            br.ui:createSpinnerWithout(section, "Whirlwind Units", 3, 1, 10, 1, "|cffFFFFFFSet to desired minimal number of units required to use Whirlwind.")
-            -- Execute Phase
-            br.ui:createCheckbox(section, "Use Execute Phase")
+			-- Rampage Fast
+			br.ui:createCheckbox(section,"Faster Rampage", "Uses Rampage faster")
         br.ui:checkSectionState(section)
         ------------------------
         --- COOLDOWN OPTIONS ---
@@ -82,20 +84,14 @@ local function createOptions()
             br.ui:createCheckbox(section,"Racial")
             -- Trinkets
             br.ui:createCheckbox(section,"Trinkets")
-            -- Avatar
-            br.ui:createCheckbox(section,"Avatar")
-            -- Battle Cry
-            br.ui:createCheckbox(section,"Battle Cry")
             -- Bladestorm
             br.ui:createCheckbox(section,"Bladestorm")
-            -- Bloodbath
-            br.ui:createCheckbox(section,"Bloodbath")
+			-- Heroic Throw
+            br.ui:createCheckbox(section,"Heroic Throw")
             -- Dragon Roar
             br.ui:createCheckbox(section,"Dragon Roar")
-            -- Draught of Souls
-            br.ui:createCheckbox(section, "Draught of Souls")
-            -- Shockwave
-            br.ui:createCheckbox(section,"Shockwave")
+            -- Recklessness
+            br.ui:createDropdownWithout(section, "Recklessness", {"Always", "Cooldown", "Never"}, 1, "Desired usage of spell.")
         br.ui:checkSectionState(section)
         -------------------------
         --- DEFENSIVE OPTIONS ---
@@ -109,17 +105,16 @@ local function createOptions()
             if br.player.race == "Draenei" then
                 br.ui:createSpinner(section, "Gift of the Naaru",  50,  0,  100,  5,  "|cffFFFFFFHealth Percent to Cast At")
             end
-            -- Commanding Shout
-            br.ui:createSpinner(section, "Commanding Shout", 60, 0, 100, 5, "|cffFFBB00Health Percentage to use at.")
             -- Enraged Regeneration
             br.ui:createSpinner(section, "Enraged Regeneration", 60, 0, 100, 5, "|cffFFBB00Health Percentage to use at.")
             -- Intimidating Shout
             br.ui:createSpinner(section, "Intimidating Shout",  60,  0,  100,  5,  "|cffFFBB00Health Percentage to use at.")
-            -- Shockwave
-            br.ui:createSpinner(section, "Shockwave - HP", 60, 0, 100, 5, "|cffFFBB00Health Percentage to use at.")
-            br.ui:createSpinner(section, "Shockwave - Units", 3, 1, 10, 1, "|cffFFBB00Minimal units to cast on.")
+            -- Rallying Cry
+            br.ui:createSpinner(section, "Rallying Cry", 60, 0, 100, 5, "|cffFFBB00Health Percentage to use at.")
             -- Storm Bolt
             br.ui:createSpinner(section, "Storm Bolt", 60, 0, 100, 5, "|cffFFBB00Health Percentage to use at.")
+            -- Victory Rush
+            br.ui:createSpinner(section, "Victory Rush", 60, 0, 100, 5, "|cffFFBB00Health Percentage to use at.")
         br.ui:checkSectionState(section)
         -------------------------
         --- INTERRUPT OPTIONS ---
@@ -129,8 +124,6 @@ local function createOptions()
             br.ui:createCheckbox(section,"Pummel")
             -- Intimidating Shout
             br.ui:createCheckbox(section,"Intimidating Shout - Int")
-            -- Shockwave
-            br.ui:createCheckbox(section,"Shockwave - Int")
             -- Storm Bolt
             br.ui:createCheckbox(section,"Storm Bolt - Int")
             -- Interrupt Percentage
@@ -181,57 +174,39 @@ local function runRotation()
 --------------
 --- Locals ---
 --------------
-        local addsExist                                     = false
-        local addsIn                                        = 999
-        local artifact                                      = br.player.artifact
         local buff                                          = br.player.buff
         local cast                                          = br.player.cast
         local combatTime                                    = getCombatTime()
         local cd                                            = br.player.cd
         local charges                                       = br.player.charges
-        local deadMouse                                     = UnitIsDeadOrGhost("mouseover")
-        local deadtar, attacktar, hastar, playertar         = deadtar or UnitIsDeadOrGhost("target"), attacktar or UnitCanAttack("target", "player"), hastar or GetObjectExists("target"), UnitIsPlayer("target")
+        local hastar                                        = hastar or GetObjectExists("target")
         local debuff                                        = br.player.debuff
-        local enemies                                       = enemies or {}
-        local falling, swimming, flying, moving             = getFallTime(), IsSwimming(), IsFlying(), GetUnitSpeed("player")>0
-        local friendly                                      = friendly or UnitIsFriend("target", "player")
-        local gcd                                           = br.player.gcd
-        local hasMouse                                      = GetObjectExists("mouseover")
-        local healPot                                       = getHealthPot()
+        local enemies                                       = br.player.enemies
+        local equiped                                       = br.player.equiped
+        local gcd                                           = br.player.gcdMax
         local heirloomNeck                                  = 122667 or 122668
         local inCombat                                      = br.player.inCombat
-        local inInstance                                    = br.player.instance=="party"
         local inRaid                                        = br.player.instance=="raid"
         local level                                         = br.player.level
-        local lootDelay                                     = getOptionValue("LootDelay")
-        local lowestHP                                      = br.friend[1].unit
         local mode                                          = br.player.mode
-        local perk                                          = br.player.perk
+        local moving                                        = GetUnitSpeed("player")>0
         local php                                           = br.player.health
-        local playerMouse                                   = UnitIsPlayer("mouseover")
-        local power, powerMax, powerGen                     = br.player.power.rage.amount(), br.player.power.rage.max(), br.player.power.rage.regen()
         local pullTimer                                     = br.DBM:getPulltimer()
         local race                                          = br.player.race
-        local racial                                        = br.player.getRacial()
-        local solo                                          = br.player.instance=="none"
+        local rage                                          = br.player.power.rage.amount()
         local spell                                         = br.player.spell
         local talent                                        = br.player.talent
-        local thp                                           = getHP(br.player.units(5))
-        local tier19_2pc                                    = TierScan("T19") >= 2
-        local ttd                                           = getTTD
-        local ttm                                           = br.player.power.rage.ttm()
-        local units                                         = units or {}
+        local thp                                           = getHP("target")
+        local traits                                        = br.player.traits
+        local units                                         = br.player.units
 
-        units.dyn5 = br.player.units(5)
-        units.dyn8 = br.player.units(8)
-        enemies.yards8 = br.player.enemies(8)
-        enemies.yards15 = br.player.enemies(15)
-        enemies.yards40 = br.player.enemies(40)
+        units.get(5)
+        units.get(8)
+        enemies.get(8)
+        enemies.get(15)
+        enemies.get(20)
 
-        if leftCombat == nil then leftCombat = GetTime() end
         if profileStop == nil then profileStop = false end
-
-        -- ChatOverlay(round2(getDistance2("target"),2)..", "..round2(getDistance3("target"),2)..", "..round2(getDistance4("target"),2)..", "..round2(getDistance("target"),2))
 
 --------------------
 --- Action Lists ---
@@ -249,12 +224,21 @@ local function runRotation()
                     end
                 end
             end -- End Dummy Test
+            -- Battle Shout
+            if isChecked("Battle Shout") and cast.able.battleShout() then
+                for i = 1, #br.friend do
+                    local thisUnit = br.friend[i].unit
+                    if not UnitIsDeadOrGhost(thisUnit) and getDistance(thisUnit) < 100 and buff.battleShout.remain(thisUnit) < 600 then
+                        if cast.battleShout() then return end
+                    end
+                end
+            end
             -- Berserker Rage
-            if isChecked("Berserker Rage") and hasNoControl(spell.berserkerRage) then
+            if isChecked("Berserker Rage") and cast.able.berserkerRage() and hasNoControl(spell.berserkerRage) then
                 if cast.berserkerRage() then return end
             end
             -- Piercing Howl
-            if isChecked("Piercing Howl") then
+            if isChecked("Piercing Howl") and cast.able.piercingHowl() then
                 for i=1, #enemies.yards15 do
                     thisUnit = enemies.yards15[i]
                     if isMoving(thisUnit) and getFacing(thisUnit,"player") == false and getDistance(thisUnit) >= 5 then
@@ -270,421 +254,195 @@ local function runRotation()
                 if isChecked("Healthstone/Potion") and php <= getOptionValue("Healthstone/Potion")
                     and inCombat and (hasHealthPot() or hasItem(5512))
                 then
-                    if canUse(5512) then
+                    if canUseItem(5512) then
                         useItem(5512)
-                    elseif canUse(getHealthPot()) then
+                    elseif canUseItem(getHealthPot()) then
                         useItem(getHealthPot())
                     end
                 end
             -- Heirloom Neck
                 if isChecked("Heirloom Neck") and php <= getOptionValue("Heirloom Neck") then
                     if hasEquiped(heirloomNeck) then
-                        if canUse(heirloomNeck) then
+                        if canUseItem(heirloomNeck) then
                             useItem(heirloomNeck)
                         end
                     end
                 end
             -- Gift of the Naaru
-                if isChecked("Gift of the Naaru") and php <= getOptionValue("Gift of the Naaru") and php > 0 and cd.giftOfTheNaaru.remain()==0 then
-                    if cast.giftOfTheNaaru() then return end
-                end
-            -- Commanding Shout
-                if isChecked("Commanding Shout") and inCombat and php <= getOptionValue("Commanding Shout") then
-                    if cast.commandingShout() then return end
+                if isChecked("Gift of the Naaru") and cast.able.racial() and race == "Draenei" and php <= getOptionValue("Gift of the Naaru") and php > 0 then
+                    if cast.racial() then return end
                 end
             -- Enraged Regeneration
-                if isChecked("Enraged Regeneration") and inCombat and php <= getOptionValue("Enraged Regeneration") then
+                if isChecked("Enraged Regeneration") and cast.able.enragedRegeneration() and inCombat and php <= getOptionValue("Enraged Regeneration") then
                     if cast.enragedRegeneration() then return end
                 end
             -- Intimidating Shout
-                if isChecked("Intimidating Shout") and inCombat and php <= getOptionValue("Intimidating Shout") then
+                if isChecked("Intimidating Shout") and cast.able.intimidatingShout() and inCombat and php <= getOptionValue("Intimidating Shout") then
                     if cast.intimidatingShout() then return end
                 end
-            -- Shockwave
-                if inCombat and ((isChecked("Shockwave - HP") and php <= getOptionValue("Shockwave - HP")) or (isChecked("Shockwave - Units") and #enemies.yards8 >= getOptionValue("Shockwave - Units"))) then
-                    if cast.shockwave() then return end
+            -- Rallying Cry
+                if isChecked("Rallying Cry") and cast.able.rallyingCry() and inCombat and php <= getOptionValue("Rallying Cry") then
+                    if cast.rallyingCry() then return end
                 end
             -- Storm Bolt
-                if inCombat and isChecked("Storm Bolt") and php <= getOptionValue("Storm Bolt") then
+                if isChecked("Storm Bolt") and cast.able.stormBolt() and inCombat and php <= getOptionValue("Storm Bolt") then
                     if cast.stormBolt() then return end
+                end
+            -- Victory Rush
+                if isChecked("Victory Rush") and (cast.able.victoryRush() or cast.able.impendingVictory()) and inCombat and php <= getOptionValue("Victory Rush") and buff.victorious.exists() then
+                    if talent.impendingVictory then
+                        if cast.impendingVictory() then return end
+                    else
+                        if cast.victoryRush() then return end
+                    end
                 end
             end -- End Defensive Check
         end -- End Action List - Defensive
     -- Action List - Interrupts
         function actionList_Interrupts()
             if useInterrupts() then
-                for i=1, #enemies.yards40 do
-                    thisUnit = enemies.yards40[i]
-                    unitDist = getDistance(thisUnit)
-                    targetMe = UnitIsUnit("player",thisUnit) or false
+                for i=1, #enemies.yards20 do
+                    thisUnit = enemies.yards20[i]
+                    distance = getDistance(thisUnit)
                     if canInterrupt(thisUnit,getOptionValue("InterruptAt")) then
                     -- Pummel
-                        if isChecked("Pummel") and unitDist < 5 then
+                        if isChecked("Pummel") and cast.able.pummel(thisUnit) and distance < 5 then
                             if cast.pummel(thisUnit) then return end
                         end
                     -- Intimidating Shout
-                        if isChecked("Intimidating Shout - Int") and unitDist < 8 then
+                        if isChecked("Intimidating Shout - Int") and cast.able.intimidatingShout() and distance < 8 then
                             if cast.intimidatingShout() then return end
                         end
-                    -- Shockwave
-                        if isChecked("Shockwave - Int") and unitDist < 10 then
-                            if cast.shockwave() then return end
-                        end
                     -- Storm Bolt
-                        if isChecked("Storm Bolt - Int") and unitDist < 20 then
-                            if cast.stormBolt() then return end
+                        if isChecked("Storm Bolt - Int") and cast.able.stormBolt(thisUnit) and distance < 20 then
+                            if cast.stormBolt(thisUnit) then return end
                         end
                     end
                 end
             end
         end -- End Action List - Interrupts
-    -- Action List - Cooldowns
-        function actionList_Cooldowns()
-            if useCDs() and getDistance("target") < 5 then
-        -- Potions
-                -- potion,name=old_war,if=(target.health.pct<20&buff.battle_cry.up)|target.time_to_die<30
-                if inRaid and isChecked("Potion") and ((thp < 20 and buff.battleCry.exists()) or ttd(units.dyn5) < 30) then
-                    if canUse(127844) then
-                        useItem(127844)
-                    end
-                end
-        -- Ring of Collapsing Futures
-                -- use_item,name=ring_of_collapsing_futures,if=equipped.ring_of_collapsing_futures&buff.battle_cry.up&buff.enrage.up&!buff.temptation.up
-                if hasEquiped(142173) and buff.battleCry.exists() and buff.enrage.exists() and not debuff.temptation.exists("player") then
-                    if canUse(142173) then
-                        useItem(142173)
-                    end
-                end
-        -- Trinkets
-                -- use_item,slot=trinket1,if=buff.battle_cry.up&buff.enrage.up
-                if isChecked("Trinkets") and buff.battleCry.exists() and buff.enrage.exists() then
-                    if canUse(13) and not hasEquiped(140808) then
-                        useItem(13)
-                    end
-                    if canUse(14) and not hasEquiped(140808) then
-                        useItem(14)
-                    end
-                end
-        -- Dragon Roar
-                -- dragon_roar,if=(equipped.convergence_of_fates&cooldown.battle_cry.remains<2)|!equipped.convergence_of_fates&(!cooldown.battle_cry.remains<=10|cooldown.battle_cry.remains<2)
-                if isChecked("Dragon Roar") then
-                    if (hasEquiped(140806) and cd.battleCry.remain() < 2) or not hasEquiped(140806) and (cd.battleCry.remain() > 10 or cd.battleCry.remain() < 2) then
-                        if cast.dragonRoar() then return end
-                    end
-                end
-        -- Battle Cry
-                if isChecked("Battle Cry") then
-                    -- battle_cry,if=gcd.remains=0&!talent.dragon_roar.enabled&(!equipped.convergence_of_fates|!talent.bloodbath.enabled|!cooldown.bloodbath.remains|cooldown.bloodbath.remains>=10)
-                    if cd.global.remain() == 0 and not talent.dragonRoar and (not hasEquiped(140806) or not talent.bloodbath or cd.bloodbath.remain() == 0 or cd.bloodbath.remain() >= 10) then
-                        if cast.battleCry() then return end
-                    end
-                    -- battle_cry,if=gcd.remains=0&buff.dragon_roar.up&(cooldown.bloodthirst.remains=0|buff.enrage.remains>cooldown.bloodthirst.remains)
-                    if cd.global.remain() == 0 and buff.dragonRoar.exists() and (cd.bloodthirst.remain() == 0 or buff.enrage.remain() > cd.bloodthirst.remain()) then
-                        if cast.battleCry() then return end
-                    end
-                    -- -- battle_cry,if=gcd.remains=0&talent.reckless_abandon.enabled
-                    -- if cd.global.remain() == 0 and (talent.recklessAbandon or (level < 100 and (not talent.frothingBerserker or (talent.frothingBerserker and buff.frothingBerserker.exists())))) then
-                    --     if cast.battleCry() then return end
-                    -- end
-                    -- -- battle_cry,if=gcd.remains=0&talent.bladestorm.enabled&(raid_event.adds.in>90|!raid_event.adds.exists|spell_targets.bladestorm_mh>desired_targets)
-                    -- if cd.global.remain() == 0 and talent.bladestorm and ((mode.rotation == 1 and #enemies.yards8 > getOptionValue("Bladestorm Units")) or mode.rotation == 2) then
-                    --     if cast.battleCry() then return end
-                    -- end
-                end
-        -- Avatar
-                -- avatar,if=buff.battle_cry.up|(target.time_to_die<(cooldown.battle_cry.remains+10))
-                if isChecked("Avatar") then
-                    if buff.battleCry.remain() > 6 or cd.battleCry.remain() < 10 or (ttd(units.dyn5) < (cd.battleCry.remain() + 10)) then
-                        if cast.avatar() then return end
-                    end
-                end
-        -- Bloodbath
-                -- bloodbath,if=buff.dragon_roar.up|!talent.dragon_roar.enabled&buff.battle_cry.up
-                if isChecked("Bloodbath") then
-                    if (buff.dragonRoar.exists() or not talent.dragonRoar) and buff.battleCry.exists() then
-                        if cast.bloodbath() then return end
-                    end
-                end
-        -- Racials
-                -- blood_fury,if=buff.battle_cry.up
-                -- berserking,if=buff.battle_cry.up
-                -- arcane_torrent,if=rage<rage.max-40
-                if isChecked("Racial") and getSpellCD(racial) == 0 then
-                    if ((race == "Orc" or race == "Troll") and buff.battleCry.exists()) or (race == "BloodElf" and power < powerMax - 40) then
-                        if castSpell("target",racial,false,false,false) then return end
-                    end
-                end
-            end
-        end
-    -- Action List - Pre-Combat
-        function actionList_PreCombat()
-        -- Flask
-            -- flask,type=greater_draenic_strength_flask
-            if isChecked("Str-Pot") then
-                if inRaid and canFlask and flaskBuff==0 and not UnitBuffID("player",176151) then
-                    useItem(br.player.flask.leg.strengthBig)
-                    return true
-                end
-                if flaskBuff==0 then
-                    if br.player.useCrystal() then return end
-                end
-            end
-            -- food,type=pickled_eel
-            -- snapshot_stats
-            -- potion,name=old_war
-            if useCDs() and inRaid and isChecked("Str-Pot") and isChecked("Pre-Pull Timer") and pullTimer <= getOptionValue("Pre-Pull Timer") then
-                if canUse(127844) then
-                    useItem(127844)
-                end
-            end
-        end  -- End Action List - Pre-Combat
     -- Action List - Movement
         function actionList_Movement()
             if mode.mover == 1 and isValidUnit("target") then
         -- Heroic Leap
                 -- heroic_leap
-                if isChecked("Heroic Leap") and (getOptionValue("Heroic Leap")==6 or (SpecificToggle("Heroic Leap") and not GetCurrentKeyBoardFocus())) then
+                if isChecked("Heroic Leap") and cast.able.heroicLeap() and (getOptionValue("Heroic Leap")==6 or (SpecificToggle("Heroic Leap") and not GetCurrentKeyBoardFocus())) then
                     -- Best Location
                     if getOptionValue("Heroic Leap - Target") == 1 then
                         if cast.heroicLeap("best",nil,1,8) then return end
                     end
                     -- Target
-                    if getOptionValue("Heroic Leap - Target") == 2 then
+                    if getOptionValue("Heroic Leap - Target") == 2 and getDistance("target") >= 8 then
                         if cast.heroicLeap("target","ground") then return end
                     end
                 end
         -- Charge
                 -- charge
-                if (cd.heroicLeap.remain() > 0 and cd.heroicLeap.remain() < 43) or level < 26 then
-                    if cast.charge("target") then return end
+                if isChecked("Charge") and cast.able.charge("target") and getDistance("target") >= 8 then
+                    if (cd.heroicLeap.remain() > 0 and cd.heroicLeap.remain() < 43) or not isChecked("Heroic Leap") or level < 26 then
+                        if cast.charge("target") then return end
+                    end
                 end
         -- Storm Bolt
                 -- storm_bolt
-                if cast.stormBolt("target") then return end
+                if isChecked("Storm Bolt") and cast.able.stormBolt("target") then
+                    if cast.stormBolt("target") then return end
+                end
         -- Heroic Throw
                 -- heroic_throw
-                if lastSpell == spell.charge or charges.charge.count() == 0 then
-                    if cast.heroicThrow("target") then return end
+				if isChecked("Heroic Throw")
+					and cast.able.heroicThrow() and getDistance("target") >= 8 and (cast.last.charge() or charges.charge.count() == 0 or not isChecked("Charge")) then
+						if cast.heroicThrow("target") then return end
                 end
             end
         end
-    -- Action List - Battle Cry Window
-        function actionList_BattleCryWindow()
-        -- Rampage
-            -- rampage,if=talent.massacre.enabled&buff.massacre.react&buff.enrage.remains<1
-            if talent.massacre and buff.massacre.exists() and buff.enrage.remain() < 1 then
-                if cast.rampage() then return end
-            end
-        -- Bloodthirst
-            -- bloodthirst,if=target.health.pct<20&buff.enrage.remains<1
-            if thp < 20 and buff.enrage.remain() > 1 then
-                if cast.bloodthirst() then return end
-            end
-        -- Execute
-            -- execute,if=equipped.draught_of_souls&cooldown.draught_of_souls.remains<1&buff.juggernaut.remains<3
-            if hasEquiped(140808) and GetItemCooldown(140808) < 1 and buff.juggernaut.remain() < 3 and (buff.stoneHeart.exists() or thp < 20) then
-                if cast.execute() then return end
-            end
-        -- Draught of Souls
-            -- use_item,name=draught_of_souls,if=equipped.draught_of_souls&buff.battle_cry.remains>2&buff.enrage.remains>2&((talent.dragon_roar.enabled&buff.dragon_roar.remains>=3)|!talent.dragon_roar.enabled)
-            if isChecked("Draught of Souls") and hasEquiped(140808) and buff.battleCry.remain() > 2 and buff.enrage.remain() > 2 and ((talent.dragonRoar and buff.dragonRoar.remain() >= 3) or not talent.dragonRoar) then
-                if canUse(140808) then
-                    useItem(140808)
-                end
-            end
-        -- Odyn's Fury
-            -- odyns_fury,if=spell_targets.odyns_fury>1
-            if getOptionValue("Artifact") == 1 or (getOptionValue("Artifact") == 2 and useCDs()) and getDistance(units.dyn5) < 5 then
-                if ((mode.rotation == 1 and #enemies.yards8 > 1) or mode.rotation == 2) then
-                    if cast.odynsFury("player") then return end
-                end
-            end
-        -- Whirlwind
-            -- whirlwind,if=spell_targets.whirlwind>1&buff.meat_cleaver.down
-            if ((mode.rotation == 1 and #enemies.yards8 >= getOptionValue("Whirlwind Units")) or mode.rotation == 2) and not buff.meatCleaver.exists() and getDistance(units.dyn8) < 8 then
-                if cast.whirlwind() then return end
-            end
-        -- Execute
-            -- execute
-            if buff.stoneHeart.exists() or thp < 20 then
-                if cast.execute() then return end
-            end
-        -- Raging Blow
-            -- raging_blow,if=talent.inner_rage.enabled&buff.enrage.up
-            if talent.innerRage and buff.enrage.exists() then
-                if cast.ragingBlow() then return end
-            end
-        -- Rampage
-            -- rampage,if=!talent.frothing_berserker.enabled|(talent.frothing_berserker.enabled&rage>=100)
-            if not talent.frothingBerserker or (talent.frothingBerserker and power >= 100) then
-                if cast.rampage() then return end
-            end
-        -- Berserker Rage
-            -- berserker_rage,if=talent.outburst.enabled&buff.enrage.down&buff.battle_cry.up
-            if talent.outburst and not buff.enrage.exists() and buff.battleCry.exists() then
-                if cast.berserkerRage() then return end
-            end
-        -- Bloodthirst
-            -- bloodthirst,if=buff.enrage.remains<1&!talent.outburst.enabled
-            if buff.enrage.remain() < 1 and not talent.outburst then
-                if cast.bloodthirst() then return end
-            end
-        -- Odyn's Fury
-            -- odyns_fury
-            if getOptionValue("Artifact") == 1 or (getOptionValue("Artifact") == 2 and useCDs()) and getDistance(units.dyn5) < 5 then
-                if cast.odynsFury("player") then return end
-            end 
-        -- Whirlwind
-            -- whirlwind,if=buff.wrecking_ball.react&buff.enrage.up
-            if ((mode.rotation == 1 and #enemies.yards8 >= getOptionValue("Whirlwind Units")) or mode.rotation == 2) and buff.wreckingBall.exists() and buff.enrage.exists() and getDistance(units.dyn8) < 8 then
-                if cast.whirlwind() then return end
-            end
-        -- Raging Blow
-            -- raging_blow
-            if talent.innerRage or buff.enrage.exists() then
-                if cast.ragingBlow() then return end
-            end
-        -- Bloodthirst
-            -- bloodthirst
-            if cast.bloodthirst() then return end
-        -- Furious Slash
-            -- furious_slash
-            if cast.furiousSlash() then return end
-        end -- End Action List - Battle Cry Window
     -- Action List - Single
         function actionList_Single()
-        -- Bloodthirst
-            -- bloodthirst,if=buff.fujiedas_fury.up&buff.fujiedas_fury.remains<2
-            if buff.fujiedasFury.exists() and buff.fujiedasFury.remain() < 2 then
-                if cast.bloodthirst() then return end
-            end
-        -- Furious Slash
-            -- furious_slash,if=talent.frenzy.enabled&(buff.frenzy.down|buff.frenzy.remains<=2)
-            if talent.frenzy and (not buff.frenzy.exists() or buff.frenzy.remain() <= 2) then
-                if cast.furiousSlash() then return end
-            end
-        -- Raging Blow
-            -- raging_blow,if=talent.inner_rage.enabled&buff.enrage.up
-            if talent.innerRage and buff.enrage.exists() then
-                if cast.ragingBlow() then return end
+        --Seigebreaker
+            -- siegebreaker
+            if cast.able.siegebreaker() then
+                if cast.siegebreaker() then return end
             end
         -- Rampage
-            -- rampage,if=(buff.enrage.down&!talent.frothing_berserker.enabled)|buff.massacre.react|rage>=100
-            if (not buff.enrage.exists() and not talent.frothingBerserker) or buff.massacre.exists() or power >= 100 then
-                if cast.rampage() then return end
-            end
-        -- Execute
-            -- execute,if=buff.stone_heart.react
-            if buff.stoneHeart.exists() and ((talent.innerRage and cd.ragingBlow.remain() > 1) or buff.enrage.exists()) then
-                if cast.execute() then return end
-            end
-        -- Bloodthirst
-            -- bloodthirst
-            if cast.bloodthirst() then return end
-        -- Raging Blow
-            -- raging_blow,if=talent.inner_rage.enabled
-            if cast.ragingBlow() then return end
-        -- Whirlwind
-            -- whirlwind,if=buff.wrecking_ball.react&buff.enrage.up
-            if ((mode.rotation == 1 and #enemies.yards8 > 0) or mode.rotation == 2) and buff.wreckingBall.exists() and buff.enrage.exists() and getDistance(units.dyn8) < 8 then
-                if cast.whirlwind() then return end
-            end
-        -- Furious Slash
-            if cast.furiousSlash() then return end
-        end -- End Action List - Single
-    -- Action List - Execute
-        function actionList_Execute()
-        -- Bloodthirst
-            -- bloodthirst,if=buff.fujiedas_fury.up&buff.fujiedas_fury.remains<2
-            if buff.fujiedasFury.exists() and buff.fujiedasFury.remain() < 2 then
-                if cast.bloodthirst() then return end
-            end
-        -- Execute
-            -- execute,if=artifact.juggernaut.enabled().enabled&(!buff.juggernaut.up|buff.juggernaut.remains<2)|buff.stone_heart.react
-            if (artifact.juggernaut.enabled() and (not buff.juggernaut.exists() or buff.juggernaut.remain() < 2)) or buff.stoneHeart.exists() then
-                if cast.execute() then return end
-            end
-        -- Furious Slash
-            -- furious_slash,if=talent.frenzy.enabled&buff.frenzy.remains<=2
-            if talent.frenzy and buff.frenzy.remain() <= 2 then
-                if cast.furiousSlash() then return end
-            end
-        -- Rampage
-            -- rampage,if=buff.massacre.react&buff.enrage.remains<1
-            if buff.massacre.exists() and buff.enrage.remain() < 1 then
-                if cast.rampage() then return end
-            end
-        -- Execute
-            -- execute
-            if buff.stoneHeart.exists() or thp < 20 then
-                if cast.execute() then return end
-            end
-        -- Bloodthirst
-            -- bloodthirst
-            if cast.bloodthirst() then return end
-        -- Whirlwind
-            -- whirlwind,if=spell_targets.whirlwind=3&buff.wrecking_ball.react&buff.enrage.up
-            if ((mode.rotation == 1 and #enemies.yards8 >= getOptionValue("Whirlwind Units")) or mode.rotation == 2) and buff.enrage.exists() and getDistance(units.dyn8) < 8 then
-                if cast.whirlwind() then return end
-            end
-        -- Furious Slash
-            -- furious_slash,if=set_bonus.tier19_2pc
-            if tier19_2pc then
-                if cast.furiousSlash() then return end
-            end
-        -- Raging Blow
-            -- raging_blow
-            if buff.enrage.exists() or talent.innerRage then
-                if cast.ragingBlow() then return end
-            end
-        -- Furious Slash
-            -- furious_slash
-            if cast.furiousSlash() then return end
-        end -- End Action List - Execute
-    -- Action List - MultiTarget
-        function actionList_MultiTarget()
-        -- Touch of the Void
-            if isChecked("Touch of the Void") and getDistance(units.dyn5) < 5 then
-                if hasEquiped(128318) then
-                    if GetItemCooldown(128318)==0 then
-                        useItem(128318)
-                    end
+            -- rampage,if=buff.recklessness.up|(talent.frothing_berserker.enabled|talent.carnage.enabled&(buff.enrage.remains<gcd|rage>90)|talent.massacre.enabled&(buff.enrage.remains<gcd|rage>90))
+            if isChecked("Faster Rampage") then
+                if cast.able.rampage() and buff.recklessness.exists()
+                    or (talent.carnage and (buff.enrage.exists() or rage > 75))
+                    or (talent.frothingBerserker and (buff.enrage.exists() or rage > 95))
+                    or (talent.massacre and (buff.enrage.exists() or rage > 85))
+                then
+                    if cast.rampage() then return end
+                end
+            else
+                if cast.able.rampage() and (buff.recklessness.exists()
+                    or (talent.frothingBerserker or talent.carnage and (buff.enrage.remain() < gcd or rage > 90)
+                    or talent.massacre and (buff.enrage.remain() < gcd or rage > 90)))
+                then
+                    if cast.rampage() then return end
                 end
             end
+        -- Execute
+            -- execute,if=buff.enrage.up
+            if cast.able.execute() and (buff.enrage.exists()) then
+                if cast.execute() then return end
+	      end
         -- Bloodthirst
-            -- bloodthirst,if=buff.enrage.down&rage<90
-            if not buff.enrage.exists() and power < 90 then
+            -- bloodthirst,if=buff.enrage.down|azerite.cold_steel_hot_blood.rank>1
+            if cast.able.bloodthirst() and (not buff.enrage.exists() or traits.coldSteelHotBlood.rank > 1) then
+                if cast.bloodthirst() then return end
+            end
+        -- Raging Blow
+            -- raging_blow,if=charges=2
+            if cast.able.ragingBlow() and (charges.ragingBlow.count() == 2) then
+                if cast.ragingBlow() then return end
+            end
+        -- Bloodthirst
+            -- bloodthirst
+            if cast.able.bloodthirst() then
                 if cast.bloodthirst() then return end
             end
         -- Bladestorm
-            -- bladestorm,if=raid_event.adds.in>90|!raid_event.adds.exists|spell_targets.bladestorm_mh>1
-            if isChecked("Bladestorm") and ((mode.rotation == 1 and #enemies.yards8 > getOptionValue("Bladestorm Units")) or mode.rotation == 2) then
+            -- bladestorm,if=prev_gcd.1.rampage&(debuff.siegebreaker.up|!talent.siegebreaker.enabled)
+            if isChecked("Bladestorm") 
+				and	cast.able.bladestorm() and ((mode.rotation == 1 and (#enemies.yards8 >= getOptionValue("AoE Threshold") or talent.siegebreaker)) or (mode.rotation == 2 and #enemies.yards8 > 0))
+					and (cast.last.rampage() and (debuff.siegebreaker.exists(units.dyn8) or not talent.siegebreaker))
+            then
                 if cast.bladestorm() then return end
             end
-        -- Whirlwind
-            -- whirlwind,if=buff.meat_cleaver.down
-            if not buff.meatCleaver.exists() and getDistance(units.dyn8) < 8 then
-                if cast.whirlwind() then return end
+        -- Dragon Roar
+            -- dragon_roar,if=buff.enrage.up
+            if isChecked("Dragon Roar") and cast.able.dragonRoar(nil,"aoe") and buff.enrage.exists() then
+                if cast.dragonRoar(nil,"aoe") then return end
             end
-        -- Execute
-            -- execute,if=spell_targets.whirlwind<6&talent.massacre.enabled&!buff.massacre.react
-            if #enemies.yards8 < 6 and talent.massacre and not buff.massacre.exists() and thp < 20 then
-                if cast.execute() then return end
+        -- Raging Blow
+            -- raging_blow,if=talent.carnage.enabled|(talent.massacre.enabled&rage<80)|(talent.frothing_berserker.enabled&rage<90)
+            if cast.able.ragingBlow() and (talent.carnage or (talent.massacre and rage < 80) or (talent.frothingBerserker and rage < 90)) then
+                if cast.ragingBlow() then return end
             end
-        -- Rampage
-            -- rampage,if=buff.meat_cleaver.up&(buff.enrage.down&!talent.frothing_berserker.enabled|buff.massacre.react|rage>=100)
-            if buff.meatCleaver.exists() and (not buff.enrage.exists() and (not talent.frothingBerserker or buff.massacre.exists() or power >= 100)) then
-                if cast.rampage() then return end
+        -- Furious Slash
+            -- furious_slash,if=talent.furious_slash.enabled
+            if cast.able.furiousSlash() and (talent.furiousSlash) then
+                if cast.furiousSlash() then return end
             end
-        -- Bloodthirst
-            -- bloodthirst
-            if cast.bloodthirst() then return end
         -- Whirlwind
             -- whirlwind
-            if getDistance(units.dyn8) < 8 then
-                if cast.whirlwind() then return end
+            if cast.able.whirlwind(nil,"aoe") and #enemies.yards8 > 0 and (level < 75 or charges.ragingBlow.count() == 0
+                or rage >= 90 or (talent.massacre and rage >= 80))
+            then
+                if cast.whirlwind(nil,"aoe") then return end
             end
-        end -- End Action List - MultiTarget
+        end -- End Action List - Single
+    -- Action List - Pre-Combat
+        function actionList_PreCombat()
+            -- food,type=pickled_eel
+            -- snapshot_stats
+            -- potion,name=Potion Of Bursting blood
+            if useCDs() and inRaid and isChecked("Str-Pot") and isChecked("Pre-Pull Timer") and pullTimer <= getOptionValue("Pre-Pull Timer") then
+                if canUseItem(152560) then
+                    useItem(152560)
+                end
+            end
+        end  -- End Action List - Pre-Combat
 -----------------
 --- Rotations ---
 -----------------
@@ -732,33 +490,68 @@ local function runRotation()
                 end
             -- Action List - Interrupts
                 if actionList_Interrupts() then return end
-            -- Action List - Cooldowns
-                if actionList_Cooldowns() then return end
-            -- Action List - Battle Cry Window
-                -- call_action_list,name=cooldowns,if=buff.battle_cry.up
-                if buff.battleCry.exists() then
-                    if actionList_BattleCryWindow() then return end
+            -- Potions
+                -- potion
+                if useCDs() and getDistance("target") < 5 and inRaid and isChecked("Potion") then
+                    if canUseItem(152560) then
+                        useItem(152560)
+                    end
                 end
-            -- Action List - Multi Target
-                -- call_action_list,name=aoe,if=spell_targets.whirlwind>3
-                if ((#enemies.yards8 > 3 and mode.rotation == 1) or mode.rotation == 2) and level >= 28 then
-                    if actionList_MultiTarget() then return end
+            -- Furious Slash
+                -- furious_slash,if=talent.furious_slash.enabled&(buff.furious_slash.stack<3|buff.furious_slash.remains<3|(cooldown.recklessness.remains<3&buff.furious_slash.remains<9))
+                if cast.able.furiousSlash() and (talent.furiousSlash and (buff.furiousSlash.stack() < 3
+                    or buff.furiousSlash.remain() < 3 or (cd.recklessness.remain() < 3 and buff.furiousSlash.remain() < 9)))
+                then
+                    if cast.furiousSlash() then return end
                 end
-            -- Action List - Execute
-                -- call_action_list,name=execute,if=target.health.pct<20
-                if thp < 20 and level >= 8 and isChecked("Use Execute Phase") then
-                    if actionList_Execute() then return end
+            -- Rampage
+                -- rampage,if=cooldown.recklessness.remains<3
+                if cast.able.rampage() and (cd.recklessness.remain() < 3) then
+                    if cast.rampage() then return end
+                end
+            -- Recklessness
+                -- recklessness
+                if cast.able.recklessness() and (getOptionValue("Recklessness") == 1 or (getOptionValue("Recklessness") == 2 and useCDs())) then
+                    if cast.recklessness() then return end
+                end
+            -- Whirlwind
+                -- whirlwind,if=spell_targets.whirlwind>1&!buff.meat_cleaver.up
+                if cast.able.whirlwind() and (((mode.rotation == 1 and #enemies.yards8 >= getOptionValue("AoE Threshold")) or (mode.rotation == 2 and #enemies.yards8 > 0)) and not buff.meatCleaver.exists()) then
+                    if cast.whirlwind() then return end
+                end
+            -- Racial
+                -- blood_fury,if=buff.recklessness.up
+                -- berserking,if=buff.recklessness.up
+                -- lights_judgment,if=buff.recklessness.down
+                -- fireblood,if=buff.recklessness.up
+                -- ancestral_call,if=buff.recklessness.up
+                if cast.able.racial() and useCDs()
+                    and ((buff.recklessness.exists() and (race == "Orc" or race == "Troll" or race == "DarkIronDwarf" or race == "MagharOrc"))
+                        or (not buff.recklessness.exists() and race == "LightforgedDraenei"))
+                then
+                    if race == "LightforgedDraenei" then
+                        if cast.racial("target","ground") then return true end
+                    else
+                        if cast.racial("player") then return true end
+                    end
+                end
+            -- Trinkets
+                if isChecked("Trinkets") and buff.enrage.exists() then
+                    if canUseItem(13) and not (hasEquiped(140808,13) or hasEquiped(147012,13)) then
+                        useItem(13)
+                    end
+                    if canUseItem(14) and not (hasEquiped(140808,14) or hasEquiped(147012,13)) then
+                        useItem(14)
+                    end
                 end
             -- Action List - Single Target
-                -- call_action_list,name=single_target,if=target.health.pct>20
-                if thp >= 20 or (thp < 20 and level < 8) or (((#enemies.yards8 > 3 and mode.rotation == 1) or mode.rotation == 2) and level < 28) or not isChecked("Use Execute Phase") then
-                    if actionList_Single() then return end
-                end
+                -- call_action_list,name=single_target
+                if actionList_Single() then return end
             end -- End Combat Rotation
         end -- Pause
     end -- End Timer
 end -- End runRotation
-local id = 72
+local id = 0 --72
 if br.rotations[id] == nil then br.rotations[id] = {} end
 tinsert(br.rotations[id],{
     name = rotationName,

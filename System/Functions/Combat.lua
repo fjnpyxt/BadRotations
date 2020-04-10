@@ -64,7 +64,7 @@ end
 function getLowAllies(Value)
 	local lowAllies = 0
 	for i = 1,#br.friend do
-		if br.friend[i].hp < Value then
+		if br.friend[i].hp <= Value then
 			lowAllies = lowAllies + 1
 		end
 	end
@@ -74,7 +74,7 @@ end
 function getLowAlliesInTable(Value, unitTable)
 	local lowAllies = 0
 	for i = 1,#unitTable do
-		if unitTable[i].hp < Value then
+		if unitTable[i].hp <= Value then
 			lowAllies = lowAllies + 1
 		end
 	end
@@ -84,110 +84,14 @@ end
 function getNumEnemies(Unit,Radius)
 	return #getEnemies(Unit,Radius)
 end
--- if getTimeToDie("target") >= 6 then
-function getTimeToDie(unit)
-	unit = unit or "target"
-	if thpcurr == nil then
-		thpcurr = 0
-	end
-	if thpstart == nil then
-		thpstart = 0
-	end
-	if timestart == nil then
-		timestart = 0
-	end
-	if GetObjectExists(unit) and GetUnitIsVisible(unit) and not UnitIsDeadOrGhost(unit) then
-		if currtar ~= UnitGUID(unit) then
-			priortar = currtar
-			currtar = UnitGUID(unit)
-		end
-		if thpstart == 0 and timestart == 0 then
-			thpstart = UnitHealth(unit)
-			timestart = GetTime()
-		else
-			thpcurr = UnitHealth(unit)
-			timecurr = GetTime()
-			if thpcurr >= thpstart then
-				thpstart = thpcurr
-				timeToDie = 999
-			else
-				if ((timecurr - timestart)==0) or ((thpstart - thpcurr)==0) then
-					timeToDie = 999
-				else
-					timeToDie = round2(thpcurr/((thpstart - thpcurr) / (timecurr - timestart)),2)
-				end
-			end
-		end
-	elseif not GetObjectExists(unit) or not GetUnitIsVisible(unit) or currtar ~= UnitGUID(unit) then
-		currtar = 0
-		priortar = 0
-		thpstart = 0
-		timestart = 0
-		timeToDie = 0
-	end
-	if timeToDie==nil then
-		return 999
-	else
-		return timeToDie
-	end
-end
--- if getTimeTo("target",20) < 10 then
-function getTimeTo(unit,percent)
-	unit = unit or "target"
-	perchp = (UnitHealthMax(unit) / 100 * percent)
-	if ttpthpcurr == nil then
-		ttpthpcurr = 0
-	end
-	if ttpthpstart == nil then
-		ttpthpstart = 0
-	end
-	if ttptimestart == nil then
-		ttptimestart = 0
-	end
-	if GetObjectExists(unit) and GetUnitIsVisible(unit) and not UnitIsDeadOrGhost(unit) then
-		if ttpcurrtar ~= UnitGUID(unit) then
-			ttppriortar = currtar
-			ttpcurrtar = UnitGUID(unit)
-		end
-		if ttpthpstart == 0 and ttptimestart == 0 then
-			ttpthpstart = UnitHealth(unit)
-			ttptimestart = GetTime()
-		else
-			ttpthpcurr = UnitHealth(unit)
-			ttptimecurr = GetTime()
-			if ttpthpcurr >= ttpthpstart then
-				ttpthpstart = ttpthpcurr
-				timeToPercent = 999
-			else
-				if ((timecurr - timestart)==0) or ((thpstart - thpcurr)==0) then
-					timeToPercent = 999
-				elseif ttpthpcurr < perchp then
-					timeToPercent = 0
-				else
-					timeToPercent = round2((ttpthpcurr - perchp)/((ttpthpstart - ttpthpcurr) / (ttptimecurr - ttptimestart)),2)
-				end
-			end
-		end
-	elseif not GetObjectExists(unit) or not GetUnitIsVisible(unit) or ttpcurrtar ~= UnitGUID(unit) then
-		ttpcurrtar = 0
-		ttppriortar = 0
-		ttpthpstart = 0
-		ttptimestart = 0
-		ttptimeToPercent = 0
-	end
-	if timeToPercent==nil then
-		return 999
-	else
-		return timeToPercent
-	end
-end
+
 function isIncapacitated(spellID)
 	local eventIndex = C_LossOfControl.GetNumEvents()
 	while (eventIndex > 0) do
 		local _,_,text = C_LossOfControl.GetEventInfo(eventIndex)
 		if (text == LOSS_OF_CONTROL_DISPLAY_FEAR
 			or text == LOSS_OF_CONTROL_DISPLAY_HORROR
-			or text == LOSS_OF_CONTROL_DISPLAY_STUN 
+			or text == LOSS_OF_CONTROL_DISPLAY_STUN
 			or text == LOSS_OF_CONTROL_DISPLAY_CHARM
 			or text == LOSS_OF_CONTROL_DISPLAY_SLEEP
 			or text == LOSS_OF_CONTROL_DISPLAY_DISORIENT
@@ -299,53 +203,79 @@ function hasNoControl(spellID,unit)
 end
 -- if hasThreat("target") then
 function hasThreat(unit,playerUnit)
+	-- Damaged Validation
+	if br.damaged[ObjectPointer(unit)] ~= nil then return true end
+	local unitID = getUnitID(unit)
+	local instance = select(2,IsInInstance())
 	if playerUnit == nil then playerUnit = "player" end
-	if GetUnit(unit) == nil then 
-		targetUnit = "None" 
+	local targetUnit, targetFriend
+	if GetUnit(unit) == nil or UnitIsDeadOrGhost(unit) or UnitIsTapDenied(unit) then
+		targetUnit = "None"
 	elseif UnitTarget(GetUnit(unit)) ~= nil then
 		targetUnit = UnitTarget(GetUnit(unit))
 	else
 		targetUnit = "None"
 	end
-	if targetUnit == "None" then targetFriend = false else targetFriend = (UnitName(targetUnit) == UnitName("player") or UnitInParty(targetUnit) or UnitInRaid(targetUnit)) end
+	if targetUnit == "None" then targetFriend = false
+	else targetFriend = (UnitName(targetUnit) == UnitName("player") or (UnitExists("pet") and UnitName(targetUnit) == UnitName("pet")) or UnitInParty(targetUnit) or UnitInRaid(targetUnit))
+	end
+
+	local function threatSituation(friendlyUnit,enemyUnit)
+		local _,_,threatPct = UnitDetailedThreatSituation(friendlyUnit,enemyUnit)
+		if threatPct ~= nil then 
+			if threatPct > 0 then
+				if isChecked("Cast Debug") and not UnitExists("target") then Print(UnitName(enemyUnit).." is threatening "..UnitName(friendlyUnit).."."); end
+				return true
+			end
+		end	
+		return false
+	end
+
+	-- Valididation Checks
 	-- Print(tostring(unit).." | "..tostring(GetUnit(unit)).." | "..tostring(targetUnit).." | "..tostring(targetFriend))
-	if unit == nil or not GetObjectExists(targetUnit) then return false end
+	if unit == nil --[[or (not GetObjectExists(targetUnit) and br.lists.threatBypass[unitID] == nil)]] then return false end
+	local playerInCombat = UnitAffectingCombat("player")
+	local unitInCombat = UnitAffectingCombat(unit)
+	-- Unit is Targeting Player/Pet/Party/Raid Validation
 	if targetFriend then
 		if isChecked("Cast Debug") and not GetObjectExists("target") then Print(UnitName(GetUnit(unit)).." is targetting "..UnitName(targetUnit)) end
 		return targetFriend
-	elseif UnitDetailedThreatSituation(playerUnit, unit)~=nil then
-		if select(3,UnitDetailedThreatSituation(playerUnit, unit)) > 0 then
-			if isChecked("Cast Debug") and not UnitExists("target") then Print(UnitName(unit).." is threatening you."); end 
-			return true 
-		end
+	-- Boss Adds Validation
+	elseif isBoss() and unitInCombat and (instance == "party" or instance == "raid") then
+		return true
+	-- Threat Bypass Validation
+	-- elseif playerInCombat and br.lists.threatBypass[unitID] ~= nil and #getEnemies(unit,20,true) == 0 then
+	-- 		return true
+	-- Open World Mob Pack Validation
+	elseif instance == "none" and playerInCombat and unitInCombat and #getEnemies(unit,8) > 0 then
+		return true
+	-- Player Threat Valdation
+	elseif threatSituation(playerUnit, unit) then
+		return true
+	-- Party/Raid Threat Validation
 	elseif #br.friend > 1 then
 		for i = 1, #br.friend do
 			local thisUnit = br.friend[i].unit
-			if UnitDetailedThreatSituation(thisUnit,unit) ~= nil then
-				if select(3,UnitDetailedThreatSituation(thisUnit,unit)) > 0 then 
-					if isChecked("Cast Debug") and not UnitExists("target") then Print(UnitName(unit).." is threatening "..UnitName(thisUnit).."."); end
-					return true 
-				end
+			if threatSituation(thisUnit,unit) then
+				return true
 			end
 		end
 	end
+	return false
+end
+function isTanking(unit)
+	return UnitThreatSituation("player", unit) ~= nil and UnitThreatSituation("player", unit) >= 2
 end
 -- if isAggroed("target") then
 function isAggroed(unit)
-local friend = br.friend
-local hasAggro = hasAggro
-	if hasAggro == nil then hasAggro = false end
-	for i=1,#friend do
-		local threat = select(5,UnitDetailedThreatSituation(friend[i].unit,unit))
-		if threat~=nil then
-			if threat>=0 then
-	  			hasAggro = true
+	for i = 1, #br.friend do
+		local friend = br.friend[i].unit
+		local threat = select(5,UnitDetailedThreatSituation(friend,unit))
+		if threat ~= nil then
+			if threat >= 0 then
+				return true
 			end
 		end
 	end
-	if hasAggro==true then
-		return true
-	else
-		return false
-	end
+	return false
 end

@@ -18,7 +18,7 @@ function castAoEHeal(spellID,numUnits,missingHP,rangeValue)
 			-- i start a second iteration where i scan unit ranges from one another.
 			for j = 1,#br.friend do
 				-- i make sure i dont compute unit range to hisself.
-				if not UnitIsUnit(br.friend[i].unit,br.friend[j].unit) then
+				if not GetUnitIsUnit(br.friend[i].unit,br.friend[j].unit) then
 					-- table the units
 					br.friend[i].distanceTable[j] = { distance = getDistance(br.friend[i].unit,br.friend[j].unit),unit = br.friend[j].unit,hp = br.friend[j].hp }
 				end
@@ -50,14 +50,33 @@ function castAoEHeal(spellID,numUnits,missingHP,rangeValue)
 	end
 end
 -- castGround("target",12345,40)
-function castGround(Unit,SpellID,maxDistance,minDistance)
+function castGround(Unit,SpellID,maxDistance,minDistance,radius,castTime)
+	if radius == nil then radius = maxDistance end
 	if minDistance == nil then minDistance = 0 end
+	local groundDistance = getDistance("player",Unit,"dist4")+1
+	local distance = getDistance("player",Unit)
+	local mouselookActive = false
 	if GetUnitExists(Unit) and getSpellCD(SpellID) == 0 and getLineOfSight("player",Unit)
-		and getDistance("player",Unit) < maxDistance and getDistance("player",Unit) >= minDistance then
+		and distance < maxDistance and distance >= minDistance
+		and #getEnemies(Unit,radius) >= #getEnemies(Unit,radius,true)
+	then
+		if IsMouselooking() then
+			mouselookActive = true
+			MouselookStop()
+		end
 		CastSpellByName(GetSpellInfo(SpellID))
-		local X,Y,Z = GetObjectPosition(Unit)
+		local X,Y,Z = 0,0,0
+		if castTime == nil or castTime == 0 then
+			X,Y,Z = GetObjectPosition(Unit)
+		else
+			X,Y,Z = GetFuturePostion(Unit, castTime)
+		end
 		--local distanceToGround = getGroundDistance(Unit) or 0
-		ClickPosition(X,Y,Z) --distanceToGround
+		if groundDistance > maxDistance then X,Y,Z = GetPositionBetweenObjects(Unit,"player",groundDistance-maxDistance) end
+		ClickPosition((X + math.random() * 2),(Y + math.random() * 2),Z) --distanceToGround
+		if mouselookActive then
+			MouselookStart()
+		end
 		return true
 	end
 	return false
@@ -86,7 +105,7 @@ function shouldNotOverheal(Unit)
 	end
 	local CurShield = UnitHealth(Unit)
 	if UnitDebuffID("player",142861) then --Ancient Miasma
-		CurShield = select(15,UnitDebuffID(Unit,142863)) or select(15,UnitDebuffID(Unit,142864)) or select(15,UnitDebuffID(Unit,142865)) or (UnitHealthMax(Unit) / 2)
+		CurShield = select(14,UnitDebuffID(Unit,142863)) or select(14,UnitDebuffID(Unit,142864)) or select(14,UnitDebuffID(Unit,142865)) or (UnitHealthMax(Unit) / 2)
 		overheal = 0
 	end
 	local overhealth = 100 * (CurShield+ overheal ) / UnitHealthMax(Unit)
@@ -173,6 +192,7 @@ Tenth 		noCast			True to return True/False instead of casting spell.
 function castSpell(Unit,SpellID,FacingCheck,MovementCheck,SpamAllowed,KnownSkip,DeadCheck,DistanceSkip,usableSkip,noCast)
 	if GetObjectExists(Unit) --and betterStopCasting(SpellID) ~= true
 		and (not UnitIsDeadOrGhost(Unit) or DeadCheck) then
+
 		-- we create an usableSkip for some specific spells like hammer of wrath aoe mode
 		if usableSkip == nil then usableSkip = false end
 		-- stop if not enough power for that spell
@@ -189,10 +209,10 @@ function castSpell(Unit,SpellID,FacingCheck,MovementCheck,SpamAllowed,KnownSkip,
 		if spellRange == nil or (spellRange < 4 and DistanceSkip==false) then spellRange = 4 end
 		if DistanceSkip == true then spellRange = 40 end
 		-- Check unit,if it's player then we can skip facing
-		if (Unit == nil or UnitIsUnit("player",Unit)) -- Player
-			or (Unit ~= nil and UnitIsFriend("player",Unit))  -- Ally
+		if (Unit == nil or GetUnitIsUnit("player",Unit)) -- Player
+			or (Unit ~= nil and GetUnitIsFriend("player",Unit))  -- Ally
 			or IsHackEnabled("AlwaysFacing")
-		then 
+		then
 			FacingCheck = true
 		elseif isSafeToAttack(Unit) ~= true then -- enemy
 			return false
@@ -208,7 +228,7 @@ function castSpell(Unit,SpellID,FacingCheck,MovementCheck,SpamAllowed,KnownSkip,
 				if SpamAllowed == false then
 					-- get our last/current cast
 					if timersTable == nil or (timersTable ~= nil and (timersTable[SpellID] == nil or timersTable[SpellID] <= GetTime() -0.6)) then
-						if (FacingCheck == true or getFacing("player",Unit) == true) and (UnitIsUnit("player",Unit) or getLineOfSight("player",Unit) == true) then
+						if (FacingCheck == true or getFacing("player",Unit) == true) and (GetUnitIsUnit("player",Unit) or br.units[Unit] ~= nil or getLineOfSight("player",Unit) == true) then
 							if noCast then
 								return true
 							else
@@ -223,16 +243,16 @@ function castSpell(Unit,SpellID,FacingCheck,MovementCheck,SpamAllowed,KnownSkip,
 								end
 								--lastSpellCast = SpellID
 								-- change main button icon
-								if getOptionCheck("Start/Stop BadRotations") then
+								--if getOptionCheck("Start/Stop BadRotations") then
 									mainButton:SetNormalTexture(select(3,GetSpellInfo(SpellID)))
 									lastSpellCast = SpellID
 									lastSpellTarget = UnitGUID(Unit)
-								end
+								--end
 								return true
 							end
 						end
 					end
-				elseif (FacingCheck == true or getFacing("player",Unit) == true) and (UnitIsUnit("player",Unit) or getLineOfSight("player",Unit) == true) then
+				elseif (FacingCheck == true or getFacing("player",Unit) == true) and (GetUnitIsUnit("player",Unit) or br.units[Unit] ~= nil or getLineOfSight("player",Unit) == true) then
 					if noCast then
 						return true
 					else
@@ -244,11 +264,11 @@ function castSpell(Unit,SpellID,FacingCheck,MovementCheck,SpamAllowed,KnownSkip,
 							local X,Y,Z = ObjectPosition(Unit)
 							ClickPosition(X,Y,Z)
 						end
-						if getOptionCheck("Start/Stop BadRotations") then
+						--if getOptionCheck("Start/Stop BadRotations") then
 							mainButton:SetNormalTexture(select(3,GetSpellInfo(SpellID)))
 							lastSpellCast = SpellID
 							lastSpellTarget = UnitGUID(Unit)
-						end
+						--end
 						return true
 					end
 				end
@@ -257,24 +277,7 @@ function castSpell(Unit,SpellID,FacingCheck,MovementCheck,SpamAllowed,KnownSkip,
 	end
 	return false
 end
--- Cast Spell Queue
-function castQueue()
-	-- Catch for spells not registering on Combat log
-	if br.player ~= nil then
-		if br.player.queue ~= nil and #br.player.queue > 0 and not IsAoEPending() then
-			local spellID = br.player.queue[1].id
-			local spellName,_,texture = GetSpellInfo(spellID)
-			local thisUnit = br.player.queue[1].target
-			CastSpellByName(spellName,thisUnit)
-			if getOptionCheck("Start/Stop BadRotations") then
-				mainButton:SetNormalTexture(texture)
-				lastSpellCast = spellID
-				lastSpellTarget = UnitGUID(thisUnit)
-			end
-		end
-	end
-	return
-end
+
 --[[castSpellMacro(Unit,SpellID,FacingCheck,MovementCheck,SpamAllowed,KnownSkip)
 Parameter 	Value
 First 	 	UnitID 			Enter valid UnitID
@@ -309,8 +312,8 @@ function castSpellMacro(Unit,SpellID,FacingCheck,MovementCheck,SpamAllowed,Known
 		if spellRange == nil or (spellRange < 4 and DistanceSkip==false) then spellRange = 4 end
 		if DistanceSkip == true then spellRange = 40 end
 		-- Check unit,if it's player then we can skip facing
-		if (Unit == nil or UnitIsUnit("player",Unit)) or -- Player
-			(Unit ~= nil and UnitIsFriend("player",Unit)) then  -- Ally
+		if (Unit == nil or GetUnitIsUnit("player",Unit)) or -- Player
+			(Unit ~= nil and GetUnitIsFriend("player",Unit)) then  -- Ally
 			FacingCheck = true
 		elseif isSafeToAttack(Unit) ~= true then -- enemy
 			return false
@@ -326,7 +329,7 @@ function castSpellMacro(Unit,SpellID,FacingCheck,MovementCheck,SpamAllowed,Known
 				if SpamAllowed == false then
 					-- get our last/current cast
 					if timersTable == nil or (timersTable ~= nil and (timersTable[SpellID] == nil or timersTable[SpellID] <= GetTime() -0.6)) then
-						if (FacingCheck == true or getFacing("player",Unit) == true) and (UnitIsUnit("player",Unit) or getLineOfSight("player",Unit) == true) then
+						if (FacingCheck == true or getFacing("player",Unit) == true) and (GetUnitIsUnit("player",Unit) or getLineOfSight("player",Unit) == true) then
 							if noCast then
 								return true
 							else
@@ -335,26 +338,26 @@ function castSpellMacro(Unit,SpellID,FacingCheck,MovementCheck,SpamAllowed,Known
 								RunMacroText("/cast [@"..Unit.."] "..GetSpellInfo(SpellID))
 								--lastSpellCast = SpellID
 								-- change main button icon
-								if getOptionCheck("Start/Stop BadRotations") then
+								--if getOptionCheck("Start/Stop BadRotations") then
 									mainButton:SetNormalTexture(select(3,GetSpellInfo(SpellID)))
 									lastSpellCast = SpellID
 									lastSpellTarget = UnitGUID(Unit)
-								end
+								--end
 								return true
 							end
 						end
 					end
-				elseif (FacingCheck == true or getFacing("player",Unit) == true) and (UnitIsUnit("player",Unit) or getLineOfSight("player",Unit) == true) then
+				elseif (FacingCheck == true or getFacing("player",Unit) == true) and (GetUnitIsUnit("player",Unit) or getLineOfSight("player",Unit) == true) then
 					if noCast then
 						return true
 					else
 						currentTarget = UnitGUID(Unit)
 						RunMacroText("/cast [@"..Unit.."] "..GetSpellInfo(SpellID))
-						if getOptionCheck("Start/Stop BadRotations") then
+						--if getOptionCheck("Start/Stop BadRotations") then
 							mainButton:SetNormalTexture(select(3,GetSpellInfo(SpellID)))
 							lastSpellCast = SpellID
 							lastSpellTarget = UnitGUID(Unit)
-						end
+						--end
 						return true
 					end
 				end
@@ -373,18 +376,37 @@ function castOpener(spellIndex,flag,index,checkdistance)
 	if not maxRange or maxRange == 0 then maxRange = 5 end
 	if checkdistance == nil then checkdistance = true end
 	if not checkdistance or getDistance("target") < maxRange then
-	    if (not castSpell(nil,"debug") and (cooldown == 0 or cooldown > br.player.gcdMax)) then
-	        Print(index..": "..spellName.." (Uncastable)");
-	        _G[flag] = true;
-	        return true
+		if (not castSpell(nil,"debug") and (cooldown == 0 or cooldown > br.player.gcdMax)) then
+			castOpenerFail(spellIndex,flag,index)
+	        -- Print(index..": "..spellName.." (Uncastable)");
+	        -- _G[flag] = true;
+			-- return true
 	    else
-	        if castSpell() then Print(index..": "..spellName); _G[flag] = true; return true end
+			if castSpell() then
+				if br.player.opener[flag] == nil then
+					Print(index..": "..spellName)
+					br.player.opener[flag] = true
+				elseif br.player.opener[flag] ~= true then
+					Print(index..": "..spellName)
+					br.player.opener[flag] = true
+				end
+				return true
+			end
 	    end
 	end
 end
-function canCast(spellID,unit)
-	if unit == nil then unit = "target" end
-	return castSpell(unit,spellID,false,false,false,false,false,false,false,true)
+function castOpenerFail(spellIndex,flag,index)
+	local spellCast = br.player.spell[spellIndex]
+	local castSpell = br.player.cast[spellIndex]
+	local spellName = select(1,GetSpellInfo(spellCast))
+	if br.player.opener[flag] == nil then
+		Print(index..": "..spellName.." (Uncastable)")
+		br.player.opener[flag] = true
+	elseif br.player.opener[flag] ~= true then
+		Print(index..": "..spellName.." (Uncastable)")
+		br.player.opener[flag] = true
+	end
+	return true
 end
 function castMouseoverHealing(Class)
 	if UnitAffectingCombat("player") then
@@ -408,7 +430,7 @@ function castMouseoverHealing(Class)
 					if npcID == npcTable[i] then
 						-- Dispel
 						for n = 1,40 do
-							local buff,_,_,count,bufftype,duration = UnitDebuff(target,n)
+							local buff,_,count,bufftype,duration = UnitDebuff(target,n)
 							if buff then
 								if bufftype == "Magic" or bufftype == "Curse" or bufftype == "Poison" then
 									if castSpell(target,88423,true,false) then
@@ -435,11 +457,11 @@ end
 function isCastingTime(lagTolerance)
 	local lagTolerance = 0
 	if UnitCastingInfo("player") ~= nil then
-		if select(6,UnitCastingInfo("player")) - GetTime() <= lagTolerance then
+		if select(5,UnitCastingInfo("player")) - GetTime() <= lagTolerance then
 			return true
 		end
 	elseif UnitChannelInfo("player") ~= nil then
-		if select(6,UnitChannelInfo("player")) - GetTime() <= lagTolerance then
+		if select(5,UnitChannelInfo("player")) - GetTime() <= lagTolerance then
 			return true
 		end
 	elseif (GetSpellCooldown(GetSpellInfo(61304)) ~= nil and GetSpellCooldown(GetSpellInfo(61304)) <= lagTolerance) then
@@ -452,7 +474,7 @@ end
 function getCastTime(spellID)
 	if spellID == 202767 then
 		if select(3,GetSpellInfo(202767)) == 1392545 then spellID = 202767
-       	elseif select(3,GetSpellInfo(202767)) == 1392543 then spellID = 202768
+		elseif select(3,GetSpellInfo(202767)) == 1392543 then spellID = 202768
         elseif select(3,GetSpellInfo(202767)) == 1392542 then spellID = 202771
         end
     end
@@ -461,9 +483,9 @@ function getCastTime(spellID)
 end
 function getCastTimeRemain(unit)
 	if UnitCastingInfo(unit) ~= nil then
-		return select(6,UnitCastingInfo(unit))/1000 - GetTime()
+		return select(5,UnitCastingInfo(unit))/1000 - GetTime()
 	elseif UnitChannelInfo(unit) ~= nil then
-		return select(6,UnitChannelInfo(unit))/1000 - GetTime()
+		return select(5,UnitChannelInfo(unit))/1000 - GetTime()
 	else
 		return 0
 	end
@@ -495,8 +517,8 @@ function isCastingSpell(spellID,unit)
 end
 -- if isCasting(12345,"target") then
 function isCasting(SpellID,Unit)
-	if GetObjectExists(Unit) and GetUnitIsVisible(Unit) then
-		if isCasting(tostring(GetSpellInfo(SpellID)),Unit) == 1 then
+	if GetUnitIsVisible(Unit) and UnitCastingInfo(Unit) then
+		if UnitCastingInfo(Unit) == GetSpellInfo(SpellID) then
 			return true
 		end
 	else
@@ -517,76 +539,150 @@ function isUnitCasting(unit)
 	end
 end
 
-function createCastFunction(thisUnit,debug,minUnits,effectRng,spellID,index)
+function createCastFunction(thisUnit,debug,minUnits,effectRng,spellID,index,predict,predictPad)
     -- Invalid Spell ID Check
-    if GetSpellInfo(spellID) == nil then Print("Invalid Spell ID: "..spellID.." for key: "..index) end
-    -- Locals
+	if GetSpellInfo(spellID) == nil then Print("Invalid Spell ID: "..spellID.." for key: "..index) end
     local spellCast = spellID
-    local spellName = GetSpellInfo(spellID)
-    local spellType = getSpellType(spellName)
-    local minRange = select(5,GetSpellInfo(spellName))
-    local maxRange = select(6,GetSpellInfo(spellName))
+    local spellName,_,_,castTime,minRange,maxRange = GetSpellInfo(spellID)
+	local spellType = getSpellType(spellName)
+	--Quaking helper
+	if getOptionCheck("Quaking Helper") then
+		--Detect channels
+		local channeledSpell = false
+		local costTable = GetSpellPowerCost(spellID)
+		for _, costInfo in pairs(costTable) do
+			if costInfo.costPerSec > 0 then
+				channeledSpell = true
+			end
+		end
+		-- Quake check
+		local quakeRemain = getDebuffRemain("player", 240448)
+		if quakeRemain > 0 then
+			if (castTime > 0 and quakeRemain <= ((castTime+300)/1000)) or (castTime == 0 and channeledSpell and quakeRemain < 1.5) then
+				return false
+			end
+		end
+	end
+	--If we want to predict movement, include casttime, else 0 it
+	if predict ~= nil then castTime = castTime / 1000 else castTime = 0 end
+	if predictPad then
+		castTime = castTime + predictPad
+	end
     -- Nil Catches
+	if minUnits == nil then minUnits = 1 end
+	if effectRng == nil then effectRng = 5 end
     if minRange == nil then minRange = 0 end
-    if maxRange == nil or maxRange == 0 then maxRange = 5 end
-    if minUnits == nil then minUnits = 1 end
-    if effectRng == nil then effectRng = 5 end
-    if debug == nil then debug = "Norm" end
+	if maxRange == nil or maxRange == 0 then maxRange = tonumber(effectRng) else maxRange = tonumber(maxRange) end
+	if debug == nil then debug = "norm" end
     local function castDebug()
         if isChecked("Cast Debug") and debug ~= "debug" then
-            local unitName = UnitName(thisUnit) or thisUnit
-            Print("Casting |cffFFFF00"..spellName.." ("..spellID..") |r on |cffFFFF00"..tostring(unitName).." |r - Spell Type: |cffFFFF00"..spellType..
-                " |r, Cast Type: |cffFFFF00"..tostring(debug).." |r, Ranges - Min: |cffFFFF00"..minRange.." |r, Max: |cffFFFF00"..maxRange..
-                " |r, Eff: |cffFFFF00"..effectRng.." |r, Min Units: |cffFFFF00"..minUnits)
+            Print("Casting |cffFFFF00"..spellName.." ("..spellID..") |r on |cffFFFF00"..tostring(UnitName(thisUnit)).."\n |r Spell Type: |cffFFFF00"..spellType..
+				" |r, Cast Type: |cffFFFF00"..tostring(debug).."\n |r Ranges - Min: |cffFFFF00"..minRange.." |r, Max: |cffFFFF00"..maxRange..
+				" |r, Eff: |cffFFFF00"..effectRng.." |r, Min Units: |cffFFFF00"..minUnits)
         end
-    end
+	end
+	local function hasTalent(spellID)
+		for k,v in pairs(br.player.spell.talents) do
+			if spellID == v then return br.player.talent[k] end
+		end
+		return true
+	end
+	local function hasEssence()
+		local essence = br.player.essence
+		if essence[index] == nil then return true end
+		if essence[index].id == nil then return true end
+		return essence[index].active
+	end
+	local function queensCourtCastCheck(spellID)
+		local queensCourtEncounter = UnitDebuffID("player",304409) -- EJ_GetEncounterInfo(2311)
+		return queensCourtEncounter == nil or (queensCourtEncounter ~= nil and br.lastCast.tracker[1] ~= spellID)
+	end
+	-- if index == "purifyingBlast" then Print(spellID.." - "..
+	-- 	"\nUsable:     "..tostring(not select(2,IsUsableSpell(spellID)))..
+	-- 	"\nOffCD:      "..tostring(getSpellCD(spellID) == 0)..
+	-- 	"\nIsKnown:    "..tostring(isKnown(spellID))..
+	-- 	"\nTalentChk:  "..tostring(hasTalent(spellID))..
+	-- 	"\nEssenceChk: "..tostring(hasEssence())..
+	-- 	"\nTarget      "..tostring(thisUnit)
+	-- 	)
+	-- 	print("\n")
+	-- end
     -- Base Spell Availablility Check
-    if --[[isChecked("Use: "..spellName) and ]]not select(2,IsUsableSpell(spellID)) and getSpellCD(spellID) == 0 and (isKnown(spellID) or debug == "known") then --and not isIncapacitated(spellID) then
+	if --[[isChecked("Use: "..spellName) and ]]not select(2,IsUsableSpell(spellID)) and getSpellCD(spellID) == 0
+		and (isKnown(spellID) or debug == "known") and hasTalent(spellID) and hasEssence() and queensCourtCastCheck(spellID)--and not isIncapacitated(spellID)
+	then
         -- Attempt to determine best unit for spell's range
-        if thisUnit == nil then thisUnit = getSpellUnit(spellCast) end
+        if thisUnit == nil then
+			if debug == "norm" or debug == "dead" or debug == "rect" or debug == "cone" then
+				thisUnit = getSpellUnit(spellID)
+			else
+				thisUnit = getSpellUnit(spellID,true)
+			end
+		end
         -- Return specified/best cast method
         if debug == "debug" then
-            castDebug()
-            return true --castSpell(thisUnit,spellCast,false,false,false,false,false,false,false,true)
+			castDebug()
+            return true
         elseif thisUnit == "best" then
-            castDebug()
-            return castGroundAtBestLocation(spellCast,effectRng,minUnits,maxRange,minRange,debug)
+			-- br.addonDebug( "|cFFFFFF00Attempting to cast "..GetSpellInfo(spellCast).." on "..thisUnit)
+            return castGroundAtBestLocation(spellCast,effectRng,minUnits,maxRange,minRange,debug,castTime)
         elseif thisUnit == "playerGround" and (getDistance("player") < maxRange or IsSpellInRange(spellName,"player") == 1) then
-            castDebug()
+			-- br.addonDebug( "|cFFFFFF00Attempting to cast "..GetSpellInfo(spellCast).." on "..thisUnit)
             return castGroundAtUnit(spellCast,effectRng,minUnits,maxRange,minRange,debug,"player")
         elseif thisUnit == "targetGround" and (getDistance("target") < maxRange or IsSpellInRange(spellName,"target") == 1) then
-            castDebug()
+			-- br.addonDebug( "|cFFFFFF00Attempting to cast "..GetSpellInfo(spellCast).." on "..thisUnit)
             return castGroundAtUnit(spellCast,effectRng,minUnits,maxRange,minRange,debug,"target")
-        elseif thisUnit ~= nil then
-            local distance = getDistance(thisUnit) 
-            if ((distance >= minRange and distance < maxRange) or IsSpellInRange(spellName,thisUnit) == 1) then
-                if debug == "rect" and getEnemiesInRect(effectRng,maxRange,false) >= minUnits then
-                    castDebug()
-                    return castSpell(thisUnit,spellCast,false,false,false,true,false,true,true,false)
-                elseif debug == "ground" then
-                    if getLineOfSight(thisUnit) then
-                        if IsMouseButtonDown(2) then 
-                            return false 
-                        else
-                            castDebug()
-                            return castGround(thisUnit,spellCast,maxRange,minRange)
-                        end
+		elseif thisUnit == "pettarget" and (getDistance("pettarget","pet") < maxRange or IsSpellInRange(spellName,"pettarget") == 1) then
+			-- br.addonDebug( "|cFFFFFF00Attempting to cast "..GetSpellInfo(spellCast).." on "..thisUnit)
+			return castSpell(thisUnit,spellCast,true,false,false,true,false,true,true,false)
+		elseif thisUnit ~= nil then
+			local distance = getDistance(thisUnit)
+			if debug == "pet" then distance = getDistance(thisUnit,"pet") end
+			if ((distance >= minRange and distance < maxRange) or IsSpellInRange(spellName,thisUnit) == 1) then
+				local hasEnemies = #getEnemies("player",maxRange) >= minUnits or spellType == "Helpful" or spellType == "Unknown"
+				if debug == "rect" then
+					if isSafeToAoE(spellID,thisUnit,effectRng,minUnits,"rect") and hasEnemies then
+						-- br.addonDebug( "|cFFFFFF00Attempting to cast "..GetSpellInfo(spellCast).." on "..UnitName(thisUnit).." [rect]")
+						return castSpell(thisUnit,spellCast,false,false,false,true,false,true,true,false)
                     end
-                elseif debug == "dead" and UnitIsPlayer(thisUnit) and UnitIsDeadOrGhost(thisUnit) and UnitIsFriend(thisUnit,"player") then
-                    castDebug()
-                    return castSpell(thisUnit,spellCast,false,false,false,true,true,true,true,false)
+                elseif debug == "cone" then
+					if isSafeToAoE(spellID,thisUnit,effectRng,minUnits,"cone") and hasEnemies then
+						-- br.addonDebug( "|cFFFFFF00Attempting to cast "..GetSpellInfo(spellCast).." on "..UnitName(thisUnit).." [cone]")
+						return castSpell(thisUnit,spellCast,false,false,false,true,false,true,true,false)
+					end
+                elseif debug == "ground" then
+			        if isSafeToAoE(spellID,thisUnit,effectRng,minUnits) and hasEnemies then
+	                    if getLineOfSight(thisUnit) then
+							-- br.addonDebug( "|cFFFFFF00Attempting to cast "..GetSpellInfo(spellCast).." on "..UnitName(thisUnit).." [ground]")
+							return castGround(thisUnit,spellCast,maxRange,minRange,effectRng,castTime)
+	                    end
+	                end
                 elseif debug == "aoe" then
-                    castDebug()
-                    return castSpell(thisUnit,spellCast,true,false,false,true,false,true,true,false)
-                elseif thisUnit ~= nil then
-                    castDebug()
-                    return castSpell(thisUnit,spellCast,false,false,false,true,false,true,true,false)
-                else
-                    Print("|cffFF0000Error: |r Failed to cast. - ".."Name: "..spellName..", ID: "..spellID..", Type: "..spellType..", Min Range: "..minRange..", Max Range: "..maxRange)
-                    return false
-                end
+			        if isSafeToAoE(spellID,thisUnit,effectRng,minUnits) and hasEnemies then
+						-- br.addonDebug( "|cFFFFFF00Attempting to cast "..GetSpellInfo(spellCast).." on "..UnitName(thisUnit).." [aoe]")
+						return castSpell(thisUnit,spellCast,false,false,false,true,false,true,true,false)
+                    end
+				elseif debug == "dead" and UnitIsPlayer(thisUnit) and UnitIsDeadOrGhost(thisUnit) and GetUnitIsFriend(thisUnit,"player")
+				then
+					-- br.addonDebug( "|cFFFFFF00Attempting to cast "..GetSpellInfo(spellCast).." on "..UnitName(thisUnit).." [dead]")
+                    return castSpell(thisUnit,spellCast,false,false,false,true,true,true,true,false)
+                elseif (debug == "norm" or debug == "pet") and hasEnemies then
+					castDebug()
+					if debug == "pet" then
+						-- br.addonDebug( "|cFFFFFF00Attempting to cast "..GetSpellInfo(spellCast).." on "..UnitName(thisUnit).." [pet]")
+						return castSpell(thisUnit,spellCast,true,false,false,false,false,true)
+					else
+						-- br.addonDebug( "|cFFFFFF00Attempting to cast "..GetSpellInfo(spellCast).." on "..UnitName(thisUnit))
+						return castSpell(thisUnit,spellCast,true,false,false,true,false,true,true,false)
+					end
+	            end
+	        else
+				if (isChecked("Display Failcasts") or isChecked("Cast Debug")) and debug ~= "debug" then
+					Print("|cffFF0000Error: |r Failed to cast. - ".."Name: "..spellName..", ID: "..spellID..", Type: "..spellType..", Min Range: "..minRange..", Max Range: "..maxRange)
+	            end
+	            return false
             end
-        elseif (thisUnit == nil or thisUnit == "best" or thisUnit == "playerGround" or thisUnit == "targetGround") and getDistance(br.player.units(maxRange)) < maxRange then
+        elseif (thisUnit == nil or thisUnit == "best" or thisUnit == "playerGround" or thisUnit == "targetGround") and getDistance(dynamicTarget(maxRange)) < maxRange then
             if (isChecked("Display Failcasts") or isChecked("Cast Debug")) and debug ~= "debug" then
                 Print("|cffFF0000Error: |r Failed to cast. - ".."Name: "..spellName..", ID: "..spellID..", Type: "..spellType..", Min Range: "..minRange..", Max Range: "..maxRange)
             end
@@ -595,4 +691,22 @@ function createCastFunction(thisUnit,debug,minUnits,effectRng,spellID,index)
     elseif debug == "debug" then
         return false
     end
+end
+
+-- Cast Spell Queue
+function castQueue()
+	-- Catch for spells not registering on Combat log
+	if br.player ~= nil then
+		if br.player.queue ~= nil and #br.player.queue > 0 and not IsAoEPending() then
+			for i=1, #br.player.queue do
+				local thisUnit = br.player.queue[i].target
+				local debug = br.player.queue[i].debug
+				local minUnits = br.player.queue[i].minUnits
+				local effectRng = br.player.queue[i].effectRng
+				local spellID = br.player.queue[i].id
+				if createCastFunction(thisUnit,debug,minUnits,effectRng,spellID) then return end
+			end
+		end
+	end
+	return
 end

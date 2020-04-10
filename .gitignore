@@ -1,3 +1,6 @@
+Simc.lua
+System/SimC/aplList.lua
+System/SimC/parser.lua
 Builder.lua
 ClassLibs/New Options.lua
 ToDO.lua
@@ -26,3 +29,8 @@ QuickIndent.exe
 .idea
 misc.xml
 Rotations/Test
+.vscode/settings.json
+*.simc
+Settings/*
+
+Rotations/Rogue/Outlaw/OutlawRavens\.lua
